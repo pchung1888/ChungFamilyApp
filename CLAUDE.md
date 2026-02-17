@@ -58,6 +58,16 @@ prisma/
 - Local: `postgresql://postgres:Password1@localhost:5432/chungfamilyapp`
 - Connection string in `.env` (git-ignored)
 
+## Session Management
+When the session context is getting long (approaching limits or >90% usage), **proactively stop and create a handoff summary** before running out. Include:
+1. **What's done** — completed phases/steps with commit hashes
+2. **What's in progress** — current step, any half-done work
+3. **What's next** — remaining steps with a copy-paste prompt for the next session
+4. **Key files** — files that were created/modified this session
+5. Ask the user to start a new session with the provided prompt
+
+Do NOT wait until the session fails. Stop at a clean checkpoint (after a commit or between steps) and hand off cleanly.
+
 ## Git Workflow
 - Commit after each phase is complete
 - Descriptive commit messages
