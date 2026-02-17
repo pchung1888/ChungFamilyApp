@@ -58,4 +58,7 @@ coverage/
 *.pem
 .turbo
 
+# Claude Code internal state
+.claude/worktrees/
+
 /src/generated/prisma
