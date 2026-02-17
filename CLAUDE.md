@@ -37,6 +37,14 @@ Family travel & expense tracker for the Chung family. Built with Next.js 16 (App
 - If shadcn/ui causes issues, fall back to plain Tailwind classes
 - Client components must have `"use client"` directive at top
 
+### Build Validation
+- Run `npm run build` after completing each logical sub-step within a phase:
+  - After writing API routes
+  - After writing a page component
+  - After writing form/UI components
+- Fix TypeScript errors immediately — do not accumulate errors across multiple files
+- Exception: schema migration (`npx prisma migrate dev`) — Prisma validates this step itself
+
 ### File Naming
 - Files: kebab-case (`family-form.tsx`, `credit-card-list.tsx`)
 - Components: PascalCase (`FamilyForm`, `CreditCardList`)
