@@ -57,3 +57,5 @@ coverage/
 # Misc
 *.pem
 .turbo
+
+/src/generated/prisma

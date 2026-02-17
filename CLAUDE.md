@@ -55,7 +55,7 @@ prisma/
 ```
 
 ## Database
-- Local: `postgresql://postgres:Password1@localhost:5432/chungfamilyapp`
+- Local: `postgresql://postgres:Password0@localhost:5432/chungfamilyapp`
 - Connection string in `.env` (git-ignored)
 
 ## Session Management
