@@ -38,12 +38,13 @@ Family travel & expense tracker for the Chung family. Built with Next.js 16 (App
 - Client components must have `"use client"` directive at top
 
 ### Build Validation
-- Run `npm run build` after completing each logical sub-step within a phase:
+- Run `npm run typecheck` after completing each logical sub-step within a phase:
   - After writing API routes
   - After writing a page component
   - After writing form/UI components
 - Fix TypeScript errors immediately — do not accumulate errors across multiple files
 - Exception: schema migration (`npx prisma migrate dev`) — Prisma validates this step itself
+- Note: `npm run build` uses webpack (not Turbopack) to avoid Windows junction point issues with Prisma
 
 ### File Naming
 - Files: kebab-case (`family-form.tsx`, `credit-card-list.tsx`)
