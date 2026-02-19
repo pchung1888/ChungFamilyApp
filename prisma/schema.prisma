@@ -22,3 +22,33 @@ model FamilyMember {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model CreditCard {
+  id               String        @id @default(cuid())
+  name             String
+  network          String        // "Visa", "Mastercard", "Amex", "Discover"
+  lastFour         String
+  annualFee        Float
+  annualFeeDate    DateTime?
+  pointsBalance    Int           @default(0)
+  pointsExpiresAt  DateTime?
+  pointsName       String        // e.g. "Chase Ultimate Rewards"
+  pointsCppValue   Float         // baseline cents-per-point, e.g. 1.5
+  isActive         Boolean       @default(true)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  benefits         CardBenefit[]
+}
+
+model CardBenefit {
+  id          String      @id @default(cuid())
+  cardId      String
+  card        CreditCard  @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  name        String
+  value       Float
+  frequency   String      // "annual", "monthly", "per_trip"
+  usedAmount  Float       @default(0)
+  resetDate   DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
