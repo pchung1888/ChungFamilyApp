@@ -15,12 +15,13 @@ datasource db {
 }
 
 model FamilyMember {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
-  role      String   // "parent" or "teen"
+  role      String    // "parent" or "teen"
   email     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expenses  Expense[]
 }
 
 model CreditCard {
@@ -38,6 +39,7 @@ model CreditCard {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   benefits         CardBenefit[]
+  expenses         Expense[]
 }
 
 model CardBenefit {
@@ -51,4 +53,35 @@ model CardBenefit {
   resetDate   DateTime?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+}
+
+model Trip {
+  id          String    @id @default(cuid())
+  name        String
+  destination String
+  startDate   DateTime
+  endDate     DateTime?
+  budget      Float?
+  type        String    // "road_trip", "flight", "local"
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  expenses    Expense[]
+}
+
+model Expense {
+  id             String        @id @default(cuid())
+  tripId         String
+  trip           Trip          @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  familyMemberId String?
+  familyMember   FamilyMember? @relation(fields: [familyMemberId], references: [id], onDelete: SetNull)
+  creditCardId   String?
+  creditCard     CreditCard?   @relation(fields: [creditCardId], references: [id], onDelete: SetNull)
+  category       String        // hotel, flight, food, gas, ev_charging, tours, shopping, other
+  description    String
+  amount         Float
+  date           DateTime
+  pointsEarned   Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 }
