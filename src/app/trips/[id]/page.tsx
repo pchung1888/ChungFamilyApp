@@ -38,6 +38,7 @@ interface CreditCard {
   name: string;
   lastFour: string;
   pointsName: string;
+  isActive: boolean;
 }
 
 interface Expense {
@@ -127,7 +128,7 @@ export default function TripDetailPage({
       ]);
       if (tripJson.data) setTrip(tripJson.data);
       if (membersJson.data) setFamilyMembers(membersJson.data);
-      if (cardsJson.data) setCreditCards(cardsJson.data.filter((c) => (c as unknown as { isActive: boolean }).isActive));
+      if (cardsJson.data) setCreditCards(cardsJson.data.filter((c) => c.isActive));
       setLoading(false);
     }
     void loadAll();

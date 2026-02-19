@@ -15,7 +15,6 @@ function getExpirationStatus(expiresAt: Date | string | null): "expired" | "soon
   const daysUntilExpiry = Math.floor((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
   if (daysUntilExpiry < 0) return "expired";
-  if (daysUntilExpiry <= 30) return "soon";
   if (daysUntilExpiry <= 90) return "soon";
   return "ok";
 }

@@ -45,7 +45,7 @@ export default async function Home(): Promise<React.ReactElement> {
 
   // Expiring miles — cards with points expiring within 90 days
   const expiringCards = activeCards
-    .filter((c) => c.pointsExpiresAt !== null && c.pointsExpiresAt <= ninetyDaysFromNow)
+    .filter((c) => c.pointsExpiresAt !== null && c.pointsExpiresAt > now && c.pointsExpiresAt <= ninetyDaysFromNow)
     .map((c) => ({
       ...c,
       pointsExpiresAt: c.pointsExpiresAt!,
