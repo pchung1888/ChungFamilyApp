@@ -1,0 +1,87 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model FamilyMember {
+  id        String    @id @default(cuid())
+  name      String
+  role      String    // "parent" or "teen"
+  email     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expenses  Expense[]
+}
+
+model CreditCard {
+  id               String        @id @default(cuid())
+  name             String
+  network          String        // "Visa", "Mastercard", "Amex", "Discover"
+  lastFour         String
+  annualFee        Float
+  annualFeeDate    DateTime?
+  pointsBalance    Int           @default(0)
+  pointsExpiresAt  DateTime?
+  pointsName       String        // e.g. "Chase Ultimate Rewards"
+  pointsCppValue   Float         // baseline cents-per-point, e.g. 1.5
+  isActive         Boolean       @default(true)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  benefits         CardBenefit[]
+  expenses         Expense[]
+}
+
+model CardBenefit {
+  id          String      @id @default(cuid())
+  cardId      String
+  card        CreditCard  @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  name        String
+  value       Float
+  frequency   String      // "annual", "monthly", "per_trip"
+  usedAmount  Float       @default(0)
+  resetDate   DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Trip {
+  id          String    @id @default(cuid())
+  name        String
+  destination String
+  startDate   DateTime
+  endDate     DateTime?
+  budget      Float?
+  type        String    // "road_trip", "flight", "local"
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  expenses    Expense[]
+}
+
+model Expense {
+  id             String        @id @default(cuid())
+  tripId         String
+  trip           Trip          @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  familyMemberId String?
+  familyMember   FamilyMember? @relation(fields: [familyMemberId], references: [id], onDelete: SetNull)
+  creditCardId   String?
+  creditCard     CreditCard?   @relation(fields: [creditCardId], references: [id], onDelete: SetNull)
+  category       String        // hotel, flight, food, gas, ev_charging, tours, shopping, other
+  description    String
+  amount         Float
+  date           DateTime
+  pointsEarned   Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}

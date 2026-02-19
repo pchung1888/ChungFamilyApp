@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /d/playground/ChungFamilyApp log --oneline --all)",
+      "Bash(node --version:*)",
+      "Bash(npm --version:*)",
+      "Bash(git --version:*)",
+      "Bash(npx --yes create-next-app:*)",
+      "Bash(npx create-next-app:*)",
+      "Bash(curl:*)",
+      "Bash(git status:*)",
+      "Bash(git config:*)",
+      "Bash(PGPASSWORD=Password0 \"/c/Program Files/PostgreSQL/18/bin/psql.exe\":*)",
+      "Bash(npm install:*)",
+      "Bash(npx prisma init:*)",
+      "Bash(npx prisma db pull:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(npx next build:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(git rm:*)"
+    ]
+  },
+  "mcpServers": {
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://postgres:Password0@localhost:5432/chungfamilyapp"
+      ]
+    }
+  }
+}
