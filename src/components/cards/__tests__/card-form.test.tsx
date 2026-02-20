@@ -45,6 +45,8 @@ async function fillRequiredFields(): Promise<void> {
   await userEvent.selectOptions(screen.getByLabelText(/network/i), "Visa");
   await userEvent.type(screen.getByLabelText(/last 4 digits/i), "5678");
   await userEvent.type(screen.getByLabelText(/points program name/i), "Test Points");
+  // happy-dom bug: step="0.1" always reports stepMismatch, blocking form submission.
+  document.querySelector("form")!.setAttribute("novalidate", "");
 }
 
 afterEach(() => {
@@ -154,6 +156,8 @@ describe("CardForm behavior", () => {
     const nameInput = screen.getByLabelText(/card name/i);
     await userEvent.clear(nameInput);
     await userEvent.type(nameInput, "Chase Sapphire Preferred");
+    // happy-dom bug: step="0.1" always reports stepMismatch, blocking form submission.
+    document.querySelector("form")!.setAttribute("novalidate", "");
     await userEvent.click(screen.getByRole("button", { name: /save changes/i }));
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());

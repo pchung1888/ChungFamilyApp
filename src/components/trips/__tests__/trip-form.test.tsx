@@ -149,6 +149,8 @@ describe("TripForm behavior", () => {
     const nameInput = screen.getByLabelText(/trip name/i);
     await userEvent.clear(nameInput);
     await userEvent.type(nameInput, "Toronto Extended Trip");
+    // happy-dom bug: step="0.1" always reports stepMismatch, blocking form submission.
+    document.querySelector("form")!.setAttribute("novalidate", "");
     await userEvent.click(screen.getByRole("button", { name: /save changes/i }));
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());
