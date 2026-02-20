@@ -2,7 +2,26 @@
   "permissions": {
     "allow": [
       "Bash(npx vitest run:*)",
-      "Bash(npm run test:coverage:*)"
+      "Bash(npm run test:coverage:*)",
+      "Read(//c/Users/pingf/.claude/plans/**)",
+      "Bash(git -C \"d:/playground/ChungFamilyApp\" diff --name-only HEAD)",
+      "Bash(cmd //c \"rmdir /s /q d:\\\\playground\\\\ChungFamilyApp\\\\.next\")",
+      "Bash(cmd //c \"dir /AL d:\\\\playground\\\\ChungFamilyApp\\\\src\\\\app\\\\api\\\\cards\")",
+      "Bash(cmd //c \"dir d:\\\\playground\\\\ChungFamilyApp\\\\src\\\\app\\\\api\\\\cards\")",
+      "Bash(cmd //c \"dir d:\\\\playground\\\\ChungFamilyApp\\\\src\\\\app\\\\api\\\\cards\\\\[id]\\\\benefits\")"
+    ],
+    "additionalDirectories": [
+      "d:\\playground\\ChungFamilyApp\\src\\app\\api\\uploads\\receipt\\parse"
     ]
+  },
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "d:\\playground\\ChungFamilyApp\\public\\uploads\\receipts"
+      ]
+    }
   }
 }

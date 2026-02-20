@@ -37,6 +37,7 @@ interface CreateExpenseBody {
   amount: number;
   date: string;
   pointsEarned?: number;
+  receiptPath?: string | null;
 }
 
 export async function POST(
@@ -46,7 +47,7 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await request.json() as CreateExpenseBody;
-    const { familyMemberId, creditCardId, category, description, amount, date, pointsEarned } = body;
+    const { familyMemberId, creditCardId, category, description, amount, date, pointsEarned, receiptPath } = body;
 
     if (!category || !description || amount === undefined || !date) {
       return NextResponse.json(
@@ -73,6 +74,7 @@ export async function POST(
         amount,
         date: new Date(date),
         pointsEarned: pointsEarned ?? 0,
+        receiptPath: receiptPath ?? null,
       },
       include: {
         familyMember: { select: { id: true, name: true } },

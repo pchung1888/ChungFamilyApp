@@ -62,3 +62,7 @@ coverage/
 .claude/worktrees/
 
 /src/generated/prisma
+
+# Uploaded receipt images (local dev only)
+public/uploads/receipts/*
+!public/uploads/receipts/.gitkeep
