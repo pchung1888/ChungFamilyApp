@@ -38,6 +38,15 @@ function getTripTypeLabel(type: string): string {
   return TRIP_TYPES.find((t) => t.value === type)?.label ?? type;
 }
 
+function getTripTypeEmoji(type: string): string {
+  switch (type) {
+    case "road_trip": return "🚗";
+    case "flight":    return "✈️";
+    case "local":     return "📍";
+    default:          return "🗺️";
+  }
+}
+
 function formatDateRange(startDate: string, endDate: string | null): string {
   const start = new Date(startDate);
   const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
@@ -67,12 +76,12 @@ function TripCard({ trip, editTripId, onEditOpen, onEditClose, onRefresh, onDele
   const overBudget = trip.budget !== null && totalSpent > trip.budget;
 
   return (
-    <Card>
+    <Card className="border-t-2 border-t-sky-400">
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base leading-tight">{trip.name}</CardTitle>
           <Badge variant="outline" className="text-xs shrink-0">
-            {getTripTypeLabel(trip.type)}
+            {getTripTypeEmoji(trip.type)} {getTripTypeLabel(trip.type)}
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground">{trip.destination}</p>
@@ -99,7 +108,7 @@ function TripCard({ trip, editTripId, onEditOpen, onEditClose, onRefresh, onDele
           {budgetPct !== null && (
             <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
               <div
-                className={`h-full rounded-full ${overBudget ? "bg-destructive" : "bg-blue-500"}`}
+                className={`h-full rounded-full ${overBudget ? "bg-destructive" : "bg-sky-500"}`}
                 style={{ width: `${budgetPct}%` }}
               />
             </div>
@@ -174,29 +183,39 @@ export default function TripsPage(): React.ReactElement {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Trips</h1>
-          <p className="mt-1 text-muted-foreground">
-            {trips.length} trip{trips.length !== 1 ? "s" : ""}
-            {upcomingTrips.length > 0 && ` · ${upcomingTrips.length} upcoming`}
-          </p>
-        </div>
+      {/* Travel-themed header banner */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-700 via-blue-600 to-indigo-700 p-6 text-white shadow-lg">
+        <div className="pointer-events-none absolute -right-4 -top-4 select-none text-[8rem] leading-none opacity-[0.1]">✈️</div>
+        <div className="pointer-events-none absolute -left-2 bottom-0 select-none text-[5rem] leading-none opacity-[0.07]">🗺️</div>
+        <div className="relative flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">✈️ Trips</h1>
+            <p className="mt-1 text-sky-200">
+              {trips.length} trip{trips.length !== 1 ? "s" : ""}
+              {upcomingTrips.length > 0 && ` · ${upcomingTrips.length} upcoming`}
+            </p>
+          </div>
 
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger asChild>
-            <Button>New Trip</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create Trip</DialogTitle>
-            </DialogHeader>
-            <TripForm
-              onSuccess={() => { setAddOpen(false); void fetchTrips(); }}
-              onCancel={() => setAddOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+          <Dialog open={addOpen} onOpenChange={setAddOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                className="border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+              >
+                New Trip
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Trip</DialogTitle>
+              </DialogHeader>
+              <TripForm
+                onSuccess={() => { setAddOpen(false); void fetchTrips(); }}
+                onCancel={() => setAddOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {loading ? (
@@ -207,8 +226,8 @@ export default function TripsPage(): React.ReactElement {
         <div className="space-y-6">
           {upcomingTrips.length > 0 && (
             <div className="space-y-3">
-              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                Upcoming
+              <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-sky-700">
+                <span>✈️</span> Coming Up
               </h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {upcomingTrips.map((trip) => (
@@ -228,8 +247,8 @@ export default function TripsPage(): React.ReactElement {
 
           {pastTrips.length > 0 && (
             <div className="space-y-3">
-              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                Past Trips
+              <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-indigo-700">
+                <span>🗺️</span> Past Adventures
               </h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {pastTrips.map((trip) => (
