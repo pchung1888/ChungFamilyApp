@@ -84,14 +84,14 @@ function formatDate(value: string): string {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  hotel: "bg-purple-100 text-purple-800",
-  flight: "bg-blue-100 text-blue-800",
+  hotel: "bg-violet-100 text-violet-800",
+  flight: "bg-sky-100 text-sky-800",
   food: "bg-orange-100 text-orange-800",
-  gas: "bg-yellow-100 text-yellow-800",
-  ev_charging: "bg-green-100 text-green-800",
+  gas: "bg-amber-100 text-amber-800",
+  ev_charging: "bg-emerald-100 text-emerald-800",
   tours: "bg-pink-100 text-pink-800",
-  shopping: "bg-red-100 text-red-800",
-  other: "bg-gray-100 text-gray-800",
+  shopping: "bg-rose-100 text-rose-800",
+  other: "bg-stone-100 text-stone-700",
 };
 
 export default function TripDetailPage({
@@ -158,49 +158,61 @@ export default function TripDetailPage({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Link
-              href="/trips"
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              ← Trips
-            </Link>
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight">{trip.name}</h1>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <Badge variant="outline">{getTripTypeLabel(trip.type)}</Badge>
-            <span className="text-muted-foreground text-sm">{trip.destination}</span>
-            <span className="text-muted-foreground text-sm">·</span>
-            <span className="text-muted-foreground text-sm">
-              {formatDate(trip.startDate)}
-              {trip.endDate && ` – ${formatDate(trip.endDate)}`}
-            </span>
-          </div>
-          {trip.notes && (
-            <p className="text-sm text-muted-foreground mt-1">{trip.notes}</p>
-          )}
+      {/* Header — travel theme banner */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-700 via-blue-600 to-indigo-700 p-6 text-white shadow-lg">
+        <div className="pointer-events-none absolute -right-4 -top-4 select-none text-[7rem] leading-none opacity-[0.1]">
+          {trip.type === "road_trip" ? "🚗" : trip.type === "local" ? "📍" : "✈️"}
         </div>
+        <div className="relative flex items-start justify-between gap-4">
+          <div>
+            <div className="mb-1">
+              <Link
+                href="/trips"
+                className="text-sm text-sky-200 hover:text-white transition-colors"
+              >
+                ← Trips
+              </Link>
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight">{trip.name}</h1>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <Badge className="border-white/30 bg-white/15 text-white">
+                {getTripTypeLabel(trip.type)}
+              </Badge>
+              <span className="text-sky-200 text-sm">{trip.destination}</span>
+              <span className="text-sky-300 text-sm">·</span>
+              <span className="text-sky-200 text-sm">
+                {formatDate(trip.startDate)}
+                {trip.endDate && ` – ${formatDate(trip.endDate)}`}
+              </span>
+            </div>
+            {trip.notes && (
+              <p className="text-sm text-sky-200 mt-1">{trip.notes}</p>
+            )}
+          </div>
 
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger asChild>
-            <Button>Add Expense</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Add Expense</DialogTitle>
-            </DialogHeader>
-            <ExpenseForm
-              tripId={trip.id}
-              familyMembers={familyMembers}
-              creditCards={creditCards}
-              onSuccess={() => { setAddOpen(false); void fetchTrip(); }}
-              onCancel={() => setAddOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+          <Dialog open={addOpen} onOpenChange={setAddOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                className="shrink-0 border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+              >
+                Add Expense
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Add Expense</DialogTitle>
+              </DialogHeader>
+              <ExpenseForm
+                tripId={trip.id}
+                familyMembers={familyMembers}
+                creditCards={creditCards}
+                onSuccess={() => { setAddOpen(false); void fetchTrip(); }}
+                onCancel={() => setAddOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -225,7 +237,7 @@ export default function TripDetailPage({
                 </div>
                 <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
                   <div
-                    className={`h-full rounded-full ${overBudget ? "bg-destructive" : "bg-blue-500"}`}
+                    className={`h-full rounded-full ${overBudget ? "bg-destructive" : "bg-sky-500"}`}
                     style={{ width: `${budgetPct}%` }}
                   />
                 </div>
@@ -270,7 +282,7 @@ export default function TripDetailPage({
                   </Badge>
                   <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-blue-500"
+                      className="h-full rounded-full bg-sky-500"
                       style={{ width: totalSpent > 0 ? `${(cat.total / totalSpent) * 100}%` : "0%" }}
                     />
                   </div>

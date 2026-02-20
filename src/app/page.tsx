@@ -82,8 +82,8 @@ export default async function Home(): Promise<React.ReactElement> {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Welcome, Chung Family!</h1>
-        <p className="mt-1 text-muted-foreground">Your travel &amp; rewards command center.</p>
+        <h1 className="text-3xl font-bold tracking-tight">🌴 Welcome, Chung Family!</h1>
+        <p className="mt-1 text-muted-foreground">Your travel &amp; rewards command center. ☀️</p>
       </div>
 
       <StatCards

@@ -80,7 +80,7 @@ function BenefitRow({
         <div className="flex items-center gap-2 mt-1">
           <div className="h-1.5 w-24 rounded-full bg-muted overflow-hidden">
             <div
-              className={`h-full rounded-full ${pct >= 100 ? "bg-green-500" : "bg-blue-500"}`}
+              className={`h-full rounded-full ${pct >= 100 ? "bg-emerald-500" : "bg-amber-500"}`}
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -150,7 +150,7 @@ function CreditCardCard({
   const usedBenefitValue = card.benefits.reduce((sum, b) => sum + b.usedAmount, 0);
 
   return (
-    <Card className={card.isActive ? "" : "opacity-60"}>
+    <Card className={card.isActive ? "border-t-2 border-t-emerald-500" : "opacity-60"}>
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -299,32 +299,42 @@ export default function CardsPage(): React.ReactElement {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Credit Cards</h1>
-          <p className="mt-1 text-muted-foreground">
-            {activeCards.length} active card{activeCards.length !== 1 ? "s" : ""} ·{" "}
-            {totalPoints.toLocaleString()} total points
-          </p>
-        </div>
+      {/* Money-themed header banner */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-900 via-green-800 to-teal-800 p-6 text-white shadow-lg">
+        <div className="pointer-events-none absolute -right-4 -top-6 select-none text-[9rem] leading-none opacity-[0.07]">$</div>
+        <div className="pointer-events-none absolute -left-2 bottom-0 select-none text-[6rem] leading-none opacity-[0.06]">💰</div>
+        <div className="relative flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">💳 Credit Cards</h1>
+            <p className="mt-1 text-emerald-200">
+              {activeCards.length} active card{activeCards.length !== 1 ? "s" : ""} ·{" "}
+              {totalPoints.toLocaleString()} total points
+            </p>
+          </div>
 
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger asChild>
-            <Button>Add Card</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Add Credit Card</DialogTitle>
-            </DialogHeader>
-            <CardForm
-              onSuccess={() => {
-                setAddOpen(false);
-                void fetchCards();
-              }}
-              onCancel={() => setAddOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+          <Dialog open={addOpen} onOpenChange={setAddOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                className="border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+              >
+                Add Card
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Add Credit Card</DialogTitle>
+              </DialogHeader>
+              <CardForm
+                onSuccess={() => {
+                  setAddOpen(false);
+                  void fetchCards();
+                }}
+                onCancel={() => setAddOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {loading ? (
