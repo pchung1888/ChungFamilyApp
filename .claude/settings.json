@@ -10,7 +10,13 @@
       "Bash(cmd //c \"dir d:\\\\playground\\\\ChungFamilyApp\\\\src\\\\app\\\\api\\\\cards\")",
       "Bash(cmd //c \"dir d:\\\\playground\\\\ChungFamilyApp\\\\src\\\\app\\\\api\\\\cards\\\\[id]\\\\benefits\")",
       "Bash(\"/c/Program Files/PostgreSQL/18/bin/psql.exe\" -U postgres -d chungfamilyapp -c \"SELECT id, name, destination FROM \"\"Trip\"\" ORDER BY \"\"startDate\"\" DESC;\")",
-      "Bash(git check-ignore:*)"
+      "Bash(git check-ignore:*)",
+      "Bash(npm show:*)",
+      "Bash(npm root:*)",
+      "Read(//c/Users/pingf/AppData/Roaming/nvm/v22.9.0/node_modules/@modelcontextprotocol/server-postgres/**)",
+      "Bash(node -e:*)",
+      "Bash(cmd //c \"where node\")",
+      "Read(//c/Users/pingf/AppData/Roaming/nvm//**)"
     ],
     "additionalDirectories": [
       "d:\\playground\\ChungFamilyApp\\src\\app\\api\\uploads\\receipt\\parse"
@@ -25,11 +31,16 @@
         "d:\\playground\\ChungFamilyApp\\public\\uploads\\receipts"
       ]
     },
-    "postgres": {
-      "command": "npx",
+    "dbhub": {
+      "command": "npx.cmd",
       "args": [
+        "/c",
+        "npx",
         "-y",
-        "@modelcontextprotocol/server-postgres",
+        "@bytebase/dbhub@latest",
+        "--transport",
+        "stdio",
+        "--dsn",
         "postgresql://postgres:Password0@localhost:5432/chungfamilyapp"
       ]
     }
