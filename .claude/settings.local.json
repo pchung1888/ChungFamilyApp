@@ -20,17 +20,10 @@
       "Bash(npx prisma migrate dev:*)",
       "Bash(npx next build:*)",
       "Bash(npm run typecheck:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(head:*)",
+      "mcp__db__search_objects",
+      "mcp__db__execute_sql"
     ]
-  },
-  "mcpServers": {
-    "postgres": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-postgres",
-        "postgresql://postgres:Password0@localhost:5432/chungfamilyapp"
-      ]
-    }
   }
 }

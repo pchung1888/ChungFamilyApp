@@ -82,6 +82,7 @@ model Expense {
   amount         Float
   date           DateTime
   pointsEarned   Int           @default(0)
+  receiptPath    String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 }

@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { unlink } from "fs/promises";
+import { join } from "path";
 import { prisma } from "@/lib/prisma";
 import { EXPENSE_CATEGORIES } from "@/lib/constants";
 
@@ -14,6 +16,20 @@ interface UpdateExpenseBody {
   amount?: number;
   date?: string;
   pointsEarned?: number;
+  receiptPath?: string | null;
+}
+
+function receiptAbsPath(filename: string): string {
+  return join(process.cwd(), "public", "uploads", "receipts", filename);
+}
+
+async function unlinkReceipt(filename: string): Promise<void> {
+  try {
+    await unlink(receiptAbsPath(filename));
+  } catch (err) {
+    // Ignore missing file
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+  }
 }
 
 export async function PATCH(
@@ -34,6 +50,22 @@ export async function PATCH(
       }
     }
 
+    // Handle receipt file cleanup when replacing or removing
+    if (body.receiptPath !== undefined) {
+      const existing = await prisma.expense.findUnique({
+        where: { id: expenseId },
+        select: { receiptPath: true },
+      });
+      const oldPath = existing?.receiptPath ?? null;
+      if (oldPath) {
+        const isRemoving = body.receiptPath === null;
+        const isReplacing = body.receiptPath !== null && body.receiptPath !== oldPath;
+        if (isRemoving || isReplacing) {
+          await unlinkReceipt(oldPath);
+        }
+      }
+    }
+
     const expense = await prisma.expense.update({
       where: { id: expenseId },
       data: {
@@ -44,6 +76,7 @@ export async function PATCH(
         ...(body.amount !== undefined && { amount: body.amount }),
         ...(body.date !== undefined && { date: new Date(body.date) }),
         ...(body.pointsEarned !== undefined && { pointsEarned: body.pointsEarned }),
+        ...(body.receiptPath !== undefined && { receiptPath: body.receiptPath }),
       },
       include: {
         familyMember: { select: { id: true, name: true } },
@@ -66,6 +99,14 @@ export async function DELETE(
 ): Promise<NextResponse> {
   try {
     const { expenseId } = await params;
+
+    const existing = await prisma.expense.findUnique({
+      where: { id: expenseId },
+      select: { receiptPath: true },
+    });
+    if (existing?.receiptPath) {
+      await unlinkReceipt(existing.receiptPath);
+    }
 
     await prisma.expense.delete({ where: { id: expenseId } });
 

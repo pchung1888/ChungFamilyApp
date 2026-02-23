@@ -51,6 +51,7 @@ interface Expense {
   amount: number;
   date: string;
   pointsEarned: number;
+  receiptPath: string | null;
   familyMember: { id: string; name: string } | null;
   creditCard: { id: string; name: string; lastFour: string; pointsName: string } | null;
 }
@@ -107,6 +108,7 @@ export default function TripDetailPage({
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
   const [editExpense, setEditExpense] = useState<Expense | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const fetchTrip = useCallback(async (): Promise<void> => {
     const res = await fetch(`/api/trips/${id}`);
@@ -314,6 +316,7 @@ export default function TripDetailPage({
                   <TableHead>Card</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead className="text-right">Points</TableHead>
+                  <TableHead className="w-12">📷</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -347,6 +350,24 @@ export default function TripDetailPage({
                     </TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">
                       {expense.pointsEarned > 0 ? expense.pointsEarned.toLocaleString() : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {expense.receiptPath ? (
+                        <button
+                          type="button"
+                          onClick={() => setLightboxUrl(`/uploads/receipts/${expense.receiptPath}`)}
+                          className="block"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={`/uploads/receipts/${expense.receiptPath}`}
+                            alt="Receipt"
+                            className="h-9 w-9 rounded object-cover ring-1 ring-border"
+                          />
+                        </button>
+                      ) : (
+                        <span className="text-muted-foreground/30 text-lg">—</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1 justify-end">
@@ -396,6 +417,19 @@ export default function TripDetailPage({
           </div>
         )}
       </div>
+
+      {/* Receipt lightbox */}
+      <Dialog open={!!lightboxUrl} onOpenChange={(open) => { if (!open) setLightboxUrl(null); }}>
+        <DialogContent className="max-w-3xl bg-black/90 p-2 border-0">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Receipt</DialogTitle>
+          </DialogHeader>
+          {lightboxUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={lightboxUrl} alt="Receipt" className="max-h-[85vh] w-full object-contain rounded" />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
