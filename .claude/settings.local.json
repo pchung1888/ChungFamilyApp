@@ -23,7 +23,10 @@
       "Bash(git rm:*)",
       "Bash(head:*)",
       "mcp__db__search_objects",
-      "mcp__db__execute_sql"
+      "mcp__db__execute_sql",
+      "Bash(cd /d/playground/ChungFamilyApp && npx prisma migrate create --name link-family-member-to-user 2>&1)",
+      "Bash(cd /d/playground/ChungFamilyApp && npx prisma migrate deploy 2>&1)",
+      "Bash(cmd:*)"
     ]
   }
 }
