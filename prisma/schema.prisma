@@ -15,15 +15,16 @@ datasource db {
 }
 
 model FamilyMember {
-  id        String    @id @default(cuid())
-  name      String
-  role      String    // "parent" or "teen"
-  email     String?
-  userId    String?   @unique
-  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  expenses  Expense[]
+  id               String             @id @default(cuid())
+  name             String
+  role             String             // "parent" or "teen"
+  email            String?
+  userId           String?            @unique
+  user             User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  expenses         Expense[]
+  tripParticipants TripParticipant[]
 }
 
 model CreditCard {
@@ -58,35 +59,83 @@ model CardBenefit {
 }
 
 model Trip {
-  id          String    @id @default(cuid())
-  name        String
-  destination String
-  startDate   DateTime
-  endDate     DateTime?
-  budget      Float?
-  type        String    // "road_trip", "flight", "local"
-  notes       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  expenses    Expense[]
+  id           String            @id @default(cuid())
+  name         String
+  destination  String
+  startDate    DateTime
+  endDate      DateTime?
+  budget       Float?
+  type         String            // "road_trip", "flight", "local"
+  notes        String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  expenses     Expense[]
+  participants TripParticipant[]
+  settlements  Settlement[]
 }
 
 model Expense {
+  id                   String           @id @default(cuid())
+  tripId               String
+  trip                 Trip             @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  familyMemberId       String?
+  familyMember         FamilyMember?    @relation(fields: [familyMemberId], references: [id], onDelete: SetNull)
+  creditCardId         String?
+  creditCard           CreditCard?      @relation(fields: [creditCardId], references: [id], onDelete: SetNull)
+  paidByParticipantId  String?
+  paidByParticipant    TripParticipant? @relation("PaidByParticipant", fields: [paidByParticipantId], references: [id], onDelete: SetNull)
+  category             String           // hotel, flight, food, gas, ev_charging, tours, shopping, other
+  description          String
+  amount               Float
+  date                 DateTime
+  pointsEarned         Int              @default(0)
+  receiptPath          String?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  splits               ExpenseSplit[]
+}
+
+model TripParticipant {
   id             String        @id @default(cuid())
   tripId         String
   trip           Trip          @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  name           String
+  email          String?
   familyMemberId String?
   familyMember   FamilyMember? @relation(fields: [familyMemberId], references: [id], onDelete: SetNull)
-  creditCardId   String?
-  creditCard     CreditCard?   @relation(fields: [creditCardId], references: [id], onDelete: SetNull)
-  category       String        // hotel, flight, food, gas, ev_charging, tours, shopping, other
-  description    String
-  amount         Float
-  date           DateTime
-  pointsEarned   Int           @default(0)
-  receiptPath    String?
+  groupName      String?
   createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  splits         ExpenseSplit[]
+  paidExpenses   Expense[]     @relation("PaidByParticipant")
+  settlementsFrom Settlement[] @relation("SettlementFrom")
+  settlementsTo   Settlement[] @relation("SettlementTo")
+
+  @@unique([tripId, name])
+}
+
+model ExpenseSplit {
+  id            String          @id @default(cuid())
+  expenseId     String
+  expense       Expense         @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   TripParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  amount        Float
+
+  @@unique([expenseId, participantId])
+}
+
+model Settlement {
+  id        String          @id @default(cuid())
+  tripId    String
+  trip      Trip            @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  fromId    String
+  from      TripParticipant @relation("SettlementFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  toId      String
+  to        TripParticipant @relation("SettlementTo", fields: [toId], references: [id], onDelete: Cascade)
+  amount    Float
+  note      String?
+  settledAt DateTime?
+  createdAt DateTime        @default(now())
 }
 
 // Auth.js (NextAuth v5) required models

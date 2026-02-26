@@ -26,7 +26,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ExpenseForm } from "@/components/trips/expense-form";
+import { ParticipantsTab } from "@/components/trips/participants-tab";
+import { BalanceTab } from "@/components/trips/balance-tab";
 import { EXPENSE_CATEGORIES, TRIP_TYPES } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 interface FamilyMember {
   id: string;
@@ -46,6 +49,7 @@ interface Expense {
   tripId: string;
   familyMemberId: string | null;
   creditCardId: string | null;
+  paidByParticipantId: string | null;
   category: string;
   description: string;
   amount: number;
@@ -54,6 +58,7 @@ interface Expense {
   receiptPath: string | null;
   familyMember: { id: string; name: string } | null;
   creditCard: { id: string; name: string; lastFour: string; pointsName: string } | null;
+  paidByParticipant: { id: string; name: string } | null;
 }
 
 interface Trip {
@@ -67,6 +72,8 @@ interface Trip {
   notes: string | null;
   expenses: Expense[];
 }
+
+type TabId = "expenses" | "participants" | "balance";
 
 function getCategoryLabel(value: string): string {
   return EXPENSE_CATEGORIES.find((c) => c.value === value)?.label ?? value;
@@ -95,6 +102,12 @@ const CATEGORY_COLORS: Record<string, string> = {
   other: "bg-stone-100 text-stone-700",
 };
 
+const TABS: { id: TabId; label: string }[] = [
+  { id: "expenses", label: "Expenses" },
+  { id: "participants", label: "Participants" },
+  { id: "balance", label: "Balance" },
+];
+
 export default function TripDetailPage({
   params,
 }: {
@@ -109,6 +122,7 @@ export default function TripDetailPage({
   const [addOpen, setAddOpen] = useState(false);
   const [editExpense, setEditExpense] = useState<Expense | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabId>("expenses");
 
   const fetchTrip = useCallback(async (): Promise<void> => {
     const res = await fetch(`/api/trips/${id}`);
@@ -298,124 +312,184 @@ export default function TripDetailPage({
         </Card>
       )}
 
-      {/* Expense table */}
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold">Expenses</h2>
+      {/* Tab navigation */}
+      <div className="space-y-4">
+        <div
+          className="flex gap-1 border-b"
+          role="tablist"
+          aria-label="Trip sections"
+        >
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              aria-controls={`tabpanel-${tab.id}`}
+              id={`tab-${tab.id}`}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px",
+                activeTab === tab.id
+                  ? "border-sky-500 text-sky-600"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted"
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-        {trip.expenses.length === 0 ? (
-          <p className="text-muted-foreground">No expenses yet. Add one above!</p>
-        ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Paid By</TableHead>
-                  <TableHead>Card</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Points</TableHead>
-                  <TableHead className="w-12">📷</TableHead>
-                  <TableHead />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {trip.expenses.map((expense) => (
-                  <TableRow key={expense.id}>
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                      {new Date(expense.date).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </TableCell>
-                    <TableCell className="font-medium">{expense.description}</TableCell>
-                    <TableCell>
-                      <Badge
-                        className={`text-xs ${CATEGORY_COLORS[expense.category] ?? "bg-gray-100 text-gray-800"}`}
-                      >
-                        {getCategoryLabel(expense.category)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {expense.familyMember?.name ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {expense.creditCard
-                        ? `···${expense.creditCard.lastFour}`
-                        : "—"}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      ${expense.amount.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-right text-sm text-muted-foreground">
-                      {expense.pointsEarned > 0 ? expense.pointsEarned.toLocaleString() : "—"}
-                    </TableCell>
-                    <TableCell>
-                      {expense.receiptPath ? (
-                        <button
-                          type="button"
-                          onClick={() => setLightboxUrl(`/uploads/receipts/${expense.receiptPath}`)}
-                          className="block"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={`/uploads/receipts/${expense.receiptPath}`}
-                            alt="Receipt"
-                            className="h-9 w-9 rounded object-cover ring-1 ring-border"
-                          />
-                        </button>
-                      ) : (
-                        <span className="text-muted-foreground/30 text-lg">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1 justify-end">
-                        <Dialog
-                          open={editExpense?.id === expense.id}
-                          onOpenChange={(open) => { if (!open) setEditExpense(null); }}
-                        >
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 px-2 text-xs"
-                              onClick={() => setEditExpense(expense)}
+        {/* Expenses tab */}
+        <div
+          role="tabpanel"
+          id="tabpanel-expenses"
+          aria-labelledby="tab-expenses"
+          hidden={activeTab !== "expenses"}
+        >
+          {activeTab === "expenses" && (
+            <div className="space-y-3">
+              {trip.expenses.length === 0 ? (
+                <p className="text-muted-foreground">No expenses yet. Add one above!</p>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Paid By</TableHead>
+                        <TableHead>Card</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead className="text-right">Points</TableHead>
+                        <TableHead className="w-12">📷</TableHead>
+                        <TableHead />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {trip.expenses.map((expense) => (
+                        <TableRow key={expense.id}>
+                          <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                            {new Date(expense.date).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </TableCell>
+                          <TableCell className="font-medium">{expense.description}</TableCell>
+                          <TableCell>
+                            <Badge
+                              className={`text-xs ${CATEGORY_COLORS[expense.category] ?? "bg-gray-100 text-gray-800"}`}
                             >
-                              Edit
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-lg">
-                            <DialogHeader>
-                              <DialogTitle>Edit Expense</DialogTitle>
-                            </DialogHeader>
-                            <ExpenseForm
-                              tripId={trip.id}
-                              expense={editExpense ?? undefined}
-                              familyMembers={familyMembers}
-                              creditCards={creditCards}
-                              onSuccess={() => { setEditExpense(null); void fetchTrip(); }}
-                              onCancel={() => setEditExpense(null)}
-                            />
-                          </DialogContent>
-                        </Dialog>
+                              {getCategoryLabel(expense.category)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {expense.paidByParticipant?.name ?? expense.familyMember?.name ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {expense.creditCard
+                              ? `···${expense.creditCard.lastFour}`
+                              : "—"}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            ${expense.amount.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right text-sm text-muted-foreground">
+                            {expense.pointsEarned > 0 ? expense.pointsEarned.toLocaleString() : "—"}
+                          </TableCell>
+                          <TableCell>
+                            {expense.receiptPath ? (
+                              <button
+                                type="button"
+                                onClick={() => setLightboxUrl(`/uploads/receipts/${expense.receiptPath}`)}
+                                className="block"
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={`/uploads/receipts/${expense.receiptPath}`}
+                                  alt="Receipt"
+                                  className="h-9 w-9 rounded object-cover ring-1 ring-border"
+                                />
+                              </button>
+                            ) : (
+                              <span className="text-muted-foreground/30 text-lg">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1 justify-end">
+                              <Dialog
+                                open={editExpense?.id === expense.id}
+                                onOpenChange={(open) => { if (!open) setEditExpense(null); }}
+                              >
+                                <DialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-xs"
+                                    onClick={() => setEditExpense(expense)}
+                                  >
+                                    Edit
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-lg">
+                                  <DialogHeader>
+                                    <DialogTitle>Edit Expense</DialogTitle>
+                                  </DialogHeader>
+                                  <ExpenseForm
+                                    tripId={trip.id}
+                                    expense={editExpense ?? undefined}
+                                    familyMembers={familyMembers}
+                                    creditCards={creditCards}
+                                    onSuccess={() => { setEditExpense(null); void fetchTrip(); }}
+                                    onCancel={() => setEditExpense(null)}
+                                  />
+                                </DialogContent>
+                              </Dialog>
 
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 px-2 text-xs text-destructive hover:text-destructive"
-                          onClick={() => void handleDeleteExpense(expense.id, expense.description)}
-                        >
-                          ×
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                                onClick={() => void handleDeleteExpense(expense.id, expense.description)}
+                              >
+                                ×
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Participants tab */}
+        <div
+          role="tabpanel"
+          id="tabpanel-participants"
+          aria-labelledby="tab-participants"
+          hidden={activeTab !== "participants"}
+        >
+          {activeTab === "participants" && (
+            <ParticipantsTab tripId={trip.id} familyMembers={familyMembers} />
+          )}
+        </div>
+
+        {/* Balance tab */}
+        <div
+          role="tabpanel"
+          id="tabpanel-balance"
+          aria-labelledby="tab-balance"
+          hidden={activeTab !== "balance"}
+        >
+          {activeTab === "balance" && (
+            <BalanceTab tripId={trip.id} />
+          )}
+        </div>
       </div>
 
       {/* Receipt lightbox */}

@@ -29,15 +29,22 @@ export async function GET(
   }
 }
 
+interface SplitInput {
+  participantId: string;
+  amount: number;
+}
+
 interface CreateExpenseBody {
   familyMemberId?: string | null;
   creditCardId?: string | null;
+  paidByParticipantId?: string | null;
   category: string;
   description: string;
   amount: number;
   date: string;
   pointsEarned?: number;
   receiptPath?: string | null;
+  splits?: SplitInput[];
 }
 
 export async function POST(
@@ -47,7 +54,18 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await request.json() as CreateExpenseBody;
-    const { familyMemberId, creditCardId, category, description, amount, date, pointsEarned, receiptPath } = body;
+    const {
+      familyMemberId,
+      creditCardId,
+      paidByParticipantId,
+      category,
+      description,
+      amount,
+      date,
+      pointsEarned,
+      receiptPath,
+      splits,
+    } = body;
 
     if (!category || !description || amount === undefined || !date) {
       return NextResponse.json(
@@ -69,16 +87,34 @@ export async function POST(
         tripId: id,
         familyMemberId: familyMemberId ?? null,
         creditCardId: creditCardId ?? null,
+        paidByParticipantId: paidByParticipantId ?? null,
         category,
         description,
         amount,
         date: new Date(date),
         pointsEarned: pointsEarned ?? 0,
         receiptPath: receiptPath ?? null,
+        ...(splits && splits.length > 0 && {
+          splits: {
+            create: splits.map((s) => ({
+              participantId: s.participantId,
+              amount: s.amount,
+            })),
+          },
+        }),
       },
       include: {
         familyMember: { select: { id: true, name: true } },
         creditCard: { select: { id: true, name: true, lastFour: true, pointsName: true } },
+        paidByParticipant: { select: { id: true, name: true } },
+        splits: {
+          select: {
+            id: true,
+            participantId: true,
+            amount: true,
+            participant: { select: { id: true, name: true } },
+          },
+        },
       },
     });
 
