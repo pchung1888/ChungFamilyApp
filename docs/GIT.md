@@ -20,7 +20,7 @@ Key ignored patterns:
 ```
 main
 └── topic/N-slug          (user's feature branch — PR target for Claude)
-    └── claude/N-slug-xx  (Claude's worktree branch — PRs → topic, never main)
+    └── claude/N-slug-<suffix>  (Claude's worktree branch — PRs → topic, never main)
 ```
 
 ### Topic branches
@@ -33,6 +33,8 @@ main
 - Named `claude/<N>-<slug>-<suffix>` — must mirror the parent topic (e.g. `claude/7-newidea-pedantic-noyce`)
 - **Always PR to the parent topic branch**, never directly to `main`
 - Multiple claude branches per topic are allowed; clean them up with `/new-topic` or `/clean_gone`
+
+> **Note:** Branches created before this convention (e.g. `claude/pedantic-noyce`) omit the topic prefix and can be removed with `/clean_gone` or `/new-topic`.
 
 ## Starting a new topic
 
