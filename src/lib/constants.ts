@@ -18,3 +18,12 @@ export const TRIP_TYPES = [
 ] as const;
 
 export type TripType = (typeof TRIP_TYPES)[number]["value"];
+
+export const ITINERARY_TYPES = [
+  { value: "accommodation", label: "Accommodation" },
+  { value: "activity",      label: "Activity" },
+  { value: "transport",     label: "Transport" },
+  { value: "flight",        label: "Flight" },
+] as const;
+
+export type ItineraryItemType = (typeof ITINERARY_TYPES)[number]["value"];
