@@ -46,7 +46,11 @@ Report which branches and worktrees were deleted.
 
 ### Step 3 — Verify the topic branch exists on the remote
 
-Check if `$ARGUMENTS` appears in the remote topic branches listed in your context. If not found, stop and warn the user.
+Run this command after the fetch to get fresh remote data:
+```bash
+git branch -r | grep "origin/${TOPIC_BRANCH#origin/}" || git branch -r | grep "$ARGUMENTS"
+```
+If the branch is not found, stop and warn the user. Do not rely on the pre-fetch context for this check.
 
 ### Step 4 — Generate a random suffix (Windows-safe)
 
@@ -78,7 +82,7 @@ git worktree add "$WORKTREE_DIR" -b "$CLAUDE_BRANCH" "$TOPIC_BRANCH"
 ### Step 6 — Record the topic target
 
 ```bash
-echo "$TOPIC_BRANCH" > .claude/current-topic
+echo "$TOPIC_BRANCH" > "$(git rev-parse --show-toplevel)/.claude/current-topic"
 ```
 
 This file is gitignored (session-local state).
