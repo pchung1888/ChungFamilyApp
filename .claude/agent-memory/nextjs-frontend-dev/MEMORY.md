@@ -31,5 +31,10 @@
 - `npm run dev --webpack` — avoids Turbopack/Prisma Windows crash
 - No `any` types; no inline styles except for dynamic `width: \`${pct}%\``
 
+## Testing Notes
+- happy-dom does NOT provide `window.confirm` or `window.alert` — add stubs in `src/test-setup.ts`
+- Date formatting in tests: always parse ISO date strings as local dates via `new Date(y, m-1, d)` not `new Date(isoString)` to avoid UTC timezone shifts changing the displayed day
+- `ItineraryTab` component: `src/components/trips/itinerary-tab.tsx`
+
 ## Links
 - Patterns detail: `patterns.md` (to be created when more confirmed)

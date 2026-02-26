@@ -53,6 +53,10 @@
       "Bash(git -C \"D:\\\\playground\\\\ChungFamilyApp\" branch -r)",
       "Bash(git -C \"D:\\\\playground\\\\ChungFamilyApp\\\\.claude\\\\worktrees\\\\pedantic-noyce\" status --short)",
       "Bash(git -C \"D:\\\\playground\\\\ChungFamilyApp\" push -u origin topic/7-newidea)"
+      "Bash(git fetch origin top/6-window-skill)",
+      "Bash(git fetch --all)",
+      "Bash(gh pr:*)",
+      "Bash(npx tsc --noEmit)"
     ]
   }
 }

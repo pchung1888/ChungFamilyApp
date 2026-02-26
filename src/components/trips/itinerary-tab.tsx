@@ -95,8 +95,12 @@ export function ItineraryTab({ tripId }: ItineraryTabProps): React.ReactElement 
         data: ItineraryItem[] | null;
         error: string | null;
       };
-      if (json.data) setItems(json.data);
-      else setError(json.error ?? "Failed to load itinerary");
+      if (json.error) {
+        setError(json.error);
+      } else {
+        setItems(json.data ?? []);
+        setError(null);
+      }
     } catch {
       setError("Failed to load itinerary");
     } finally {
@@ -116,17 +120,11 @@ export function ItineraryTab({ tripId }: ItineraryTabProps): React.ReactElement 
     setItems((prev) => prev.filter((i) => i.id !== itemId));
   }
 
-  if (loading)
-    return (
-      <p className="text-muted-foreground text-sm">Loading itinerary…</p>
-    );
-  if (error) return <p className="text-sm text-destructive">{error}</p>;
-
   const days = groupByDay(items);
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
+      {/* Toolbar — always visible */}
       <div className="flex justify-end">
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild>
@@ -154,8 +152,28 @@ export function ItineraryTab({ tripId }: ItineraryTabProps): React.ReactElement 
         </Dialog>
       </div>
 
+      {/* Loading state */}
+      {loading && (
+        <p className="text-muted-foreground text-sm">Loading itinerary…</p>
+      )}
+
+      {/* Error state — inline so Add button stays visible */}
+      {!loading && error && (
+        <div className="flex flex-col items-center gap-3 py-12 text-center">
+          <span className="text-4xl" aria-hidden="true">⚠️</span>
+          <p className="text-sm text-destructive">{error}</p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => { setLoading(true); void fetchItems(); }}
+          >
+            Try again
+          </Button>
+        </div>
+      )}
+
       {/* Empty state */}
-      {items.length === 0 && (
+      {!loading && !error && items.length === 0 && (
         <div className="flex flex-col items-center gap-2 py-12 text-center">
           <span className="text-5xl" aria-hidden="true">
             🗓️
@@ -167,7 +185,7 @@ export function ItineraryTab({ tripId }: ItineraryTabProps): React.ReactElement 
       )}
 
       {/* Day groups */}
-      {days.map(({ day, items: dayItems }) => (
+      {!loading && !error && days.map(({ day, items: dayItems }) => (
         <div key={day} className="space-y-2">
           {/* Day header */}
           <div className="flex items-center gap-3">
