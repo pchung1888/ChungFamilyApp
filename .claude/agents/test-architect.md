@@ -43,6 +43,38 @@ You write tests that are **fast, deterministic, readable, and meaningful**. Ever
 - Mock API calls/server actions at the boundary
 - Cover: loading states, error states, empty states, populated states
 
+#### Mandatory tests for any tab/section that fetches a list of items
+Every browseable tab (participants, itinerary, expenses, etc.) **must** include these three test cases:
+
+1. **Empty state shows friendly message, not an error** — when the API returns `{ data: [], error: null }`, the component must render an empty-state message (e.g. "No items yet") and **must NOT** render any error text or destructive styling.
+   ```ts
+   it("shows empty-state message when API returns an empty list", async () => {
+     mockFetch({ data: [], error: null });
+     render(<MyTab ... />);
+     await waitFor(() => expect(screen.getByText(/no .* yet/i)).toBeInTheDocument());
+     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+   });
+   ```
+
+2. **Add button is always visible — even on error** — when the API returns an error response, the "Add" / "+" button must still be present so the user is never stuck.
+   ```ts
+   it("keeps the Add button visible when the fetch fails", async () => {
+     mockFetch({ data: null, error: "Server error" });
+     render(<MyTab ... />);
+     await waitFor(() => expect(screen.getByText(/server error/i)).toBeInTheDocument());
+     expect(screen.getByRole("button", { name: /add/i })).toBeInTheDocument();
+   });
+   ```
+
+3. **Add button is visible during loading** — the "Add" button must be rendered immediately (before the fetch resolves), so it is always reachable.
+   ```ts
+   it("shows the Add button while loading", () => {
+     vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
+     render(<MyTab ... />);
+     expect(screen.getByRole("button", { name: /add/i })).toBeInTheDocument();
+   });
+   ```
+
 ### 3. Business Logic Tests
 - Test domain rules, constraints, and calculations that encode business requirements
 - Written as pure unit tests when logic is extractable, or integration tests when it lives in API routes
@@ -123,6 +155,7 @@ Before delivering any test suite, verify:
 - [ ] Mocks are properly cleaned up (vi.clearAllMocks in afterEach or beforeEach)
 - [ ] Test names are descriptive and behavior-focused
 - [ ] No implementation details leaked into test assertions
+- [ ] **For any list/tab component:** empty list → friendly message (not an error); fetch error → error shown inline AND add button still visible; loading → add button still visible
 
 **Update your agent memory** as you discover testing patterns, common mocking strategies, reusable test utilities, flaky test causes, and business rules that need coverage in this codebase. This builds up institutional knowledge across conversations.
 

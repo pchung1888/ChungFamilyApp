@@ -73,6 +73,7 @@ You are an elite frontend developer specializing in Next.js 16 (App Router), Rea
 - [ ] Loading and error states handled
 - [ ] Props interface documented
 - [ ] No hardcoded strings that should be constants or config values
+- [ ] **For list/tab components:** Add button rendered before all conditional states; error shown inline (not as early return); empty list shows friendly message not an error; fetch logic checks `json.error` not `!json.data`
 
 ## Common Patterns in This Project
 - Forms: shadcn `Form` + `react-hook-form` + `zod` validation
@@ -80,6 +81,86 @@ You are an elite frontend developer specializing in Next.js 16 (App Router), Rea
 - Modals/dialogs: shadcn `Dialog` component
 - Notifications: shadcn `toast` / `Sonner`
 - Navigation: shadcn `NavigationMenu` or custom sidebar
+
+## REQUIRED: List/Tab Component Pattern
+
+Any component that fetches and renders a list of items (a "browseable tab") **must** follow this layout structure — no exceptions:
+
+```
+1. Toolbar (Add button) ← rendered FIRST, before any conditional state
+2. Loading state        ← shown only while fetching
+3. Error state          ← shown inline; never replaces the toolbar
+4. Empty state          ← friendly message + prompt to use the Add button above
+5. Populated list       ← the actual items
+```
+
+### Rules
+
+**Add button always comes first:**
+The "Add" / "+ Add Item" button must be the first thing rendered, outside any conditional block. Never gate it behind a loading or error check.
+
+```tsx
+return (
+  <div className="space-y-4">
+    {/* TOOLBAR — always rendered */}
+    <div className="flex justify-end">
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogTrigger asChild>
+          <Button size="sm">+ Add Item</Button>
+        </DialogTrigger>
+        ...
+      </Dialog>
+    </div>
+
+    {/* Loading — below the toolbar */}
+    {loading && <p className="text-muted-foreground text-sm">Loading…</p>}
+
+    {/* Error — inline, with a retry button */}
+    {!loading && error && (
+      <div className="flex flex-col items-center gap-3 py-12 text-center">
+        <span className="text-4xl">⚠️</span>
+        <p className="text-sm text-destructive">{error}</p>
+        <Button size="sm" variant="outline" onClick={retry}>Try again</Button>
+      </div>
+    )}
+
+    {/* Empty state */}
+    {!loading && !error && items.length === 0 && (
+      <div className="flex flex-col items-center gap-2 py-12 text-center">
+        <span className="text-5xl">🗓️</span>
+        <p className="text-muted-foreground text-sm">No items yet. Add your first above!</p>
+      </div>
+    )}
+
+    {/* Items */}
+    {!loading && !error && items.map(...)}
+  </div>
+);
+```
+
+**Never use an early return that hides the Add button:**
+```tsx
+// ❌ WRONG — hides toolbar, user is stuck
+if (error) return <p className="text-destructive">{error}</p>;
+
+// ✅ CORRECT — render error inline, toolbar stays
+{!loading && error && <p className="text-destructive">{error}</p>}
+```
+
+**Empty state is NOT an error:**
+When `data` comes back as `[]`, render the empty-state UI — never `setError(...)`. Check `json.error` explicitly:
+```tsx
+// ❌ WRONG — treats empty array as falsy
+if (json.data) setItems(json.data);
+else setError(json.error ?? "Failed to load");
+
+// ✅ CORRECT — check the error field, not data truthiness
+if (json.error) {
+  setError(json.error);
+} else {
+  setItems(json.data ?? []);
+}
+```
 
 ## Update Your Agent Memory
 As you work across conversations, update your agent memory with:
