@@ -1,7 +1,7 @@
 # ChungFamilyApp - Project Conventions
 
 ## Overview
-Family travel & expense tracker for the Chung family. Built with Next.js 16 (App Router), TypeScript, Prisma + PostgreSQL, Tailwind CSS v4, and shadcn/ui.
+Family travel & expense tracker for the Chung family.
 
 ## Tech Stack
 - **Framework:** Next.js 16 (App Router) with React 19
@@ -10,62 +10,18 @@ Family travel & expense tracker for the Chung family. Built with Next.js 16 (App
 - **Styling:** Tailwind CSS v4 + shadcn/ui components
 - **Package Manager:** npm
 
+## Development Environment
+Windows 11 + Git Bash. Production target is Linux (Vercel/Railway).
+For shell syntax, Windows workarounds, and build validation rules, see [docs/BUILD.md](docs/BUILD.md).
+
 ## Code Conventions
-
-### TypeScript
-- Always use explicit return types on functions
-- Use `interface` for object shapes, `type` for unions/intersections
-- No `any` — use `unknown` if the type is truly unknown
-
-### API Routes (Next.js Route Handlers)
-- All API routes return `{ data, error }` format:
-  ```typescript
-  // Success
-  return NextResponse.json({ data: result, error: null });
-  // Error
-  return NextResponse.json({ data: null, error: "Description" }, { status: 400 });
-  ```
-- Place route handlers in `src/app/api/`
-
-### Prisma
-- Always import from `@/lib/prisma` (singleton pattern)
-- Never create new `PrismaClient()` instances elsewhere
-- Run `npx prisma migrate dev --name <description>` after schema changes
-
-### Components
-- Use shadcn/ui components from `src/components/ui/`
-- If shadcn/ui causes issues, fall back to plain Tailwind classes
-- Client components must have `"use client"` directive at top
-
-### Build Validation
-- Run `npm run typecheck` after completing each logical sub-step within a phase:
-  - After writing API routes
-  - After writing a page component
-  - After writing form/UI components
-- Fix TypeScript errors immediately — do not accumulate errors across multiple files
-- Exception: schema migration (`npx prisma migrate dev`) — Prisma validates this step itself
-- Note: Both `npm run dev` and `npm run build` use webpack (not Turbopack) to avoid a Windows junction point bug with Prisma — Turbopack panics trying to create symlinks for `@prisma/client`
-
-### File Naming
-- Files: kebab-case (`family-form.tsx`, `credit-card-list.tsx`)
-- Components: PascalCase (`FamilyForm`, `CreditCardList`)
-- API routes: `route.ts` inside descriptive folders
-
-### Project Structure
-```
-src/
-  app/           # Pages and API routes (Next.js App Router)
-    api/         # API route handlers
-  components/    # React components
-    ui/          # shadcn/ui base components
-  lib/           # Utilities and shared logic
-prisma/
-  schema.prisma  # Database schema (single source of truth)
-```
+For TypeScript rules, API route format, component guidelines, file naming, and project structure, see [docs/TYPESCRIPT.md](docs/TYPESCRIPT.md).
 
 ## Database
-- Local: `postgresql://postgres:Password0@localhost:5432/chungfamilyapp`
-- Connection string in `.env` (git-ignored)
+PostgreSQL via Prisma. For Prisma conventions and connection details, see [docs/DATABASE.md](docs/DATABASE.md).
+
+## Testing
+Vitest + happy-dom + Testing Library. For setup, scripts, mocks, and known quirks, see [docs/TESTING.md](docs/TESTING.md).
 
 ## Session Management
 When the session context is getting long (approaching limits or >90% usage), **proactively stop and create a handoff summary** before running out. Include:
@@ -78,12 +34,11 @@ When the session context is getting long (approaching limits or >90% usage), **p
 Do NOT wait until the session fails. Stop at a clean checkpoint (after a commit or between steps) and hand off cleanly.
 
 ## Git Workflow
-- Commit after each phase is complete
-- Descriptive commit messages
-- Never commit `.env` or `prisma/dev.db`
-- **`.gitignore` maintenance:** When adding new tools, dependencies, or generated files to the project, update `.gitignore` accordingly. Key ignored patterns:
-  - `node_modules/`, `.next/`, `build/`, `dist/` — build artifacts
-  - `.env*` — all environment variable files (secrets, DB credentials)
-  - `prisma/dev.db*` — local SQLite files (if ever used)
-  - `coverage/` — test coverage reports
-  - OS/IDE files: `.DS_Store`, `Thumbs.db`, `.idea/`, `.vscode/*`
+For commit conventions and `.gitignore` patterns, see [docs/GIT.md](docs/GIT.md).
+
+## Plan Mode
+- Make the plan extremely concise. Sacrifice grammar for the sake of concision.
+- At the end of each plan, give me a list of unresolved questions to answer, if any.
+
+## Agents
+For the test-and-review agent — when to trigger it and what it does — see [docs/AGENTS.md](docs/AGENTS.md).

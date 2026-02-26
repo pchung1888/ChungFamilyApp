@@ -76,82 +76,87 @@ function TripCard({ trip, editTripId, onEditOpen, onEditClose, onRefresh, onDele
   const overBudget = trip.budget !== null && totalSpent > trip.budget;
 
   return (
-    <Card className="border-t-2 border-t-sky-400">
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-base leading-tight">{trip.name}</CardTitle>
-          <Badge variant="outline" className="text-xs shrink-0">
-            {getTripTypeEmoji(trip.type)} {getTripTypeLabel(trip.type)}
-          </Badge>
-        </div>
-        <p className="text-sm text-muted-foreground">{trip.destination}</p>
-      </CardHeader>
+    <div className="relative group">
+      {/* Full-card link — covers the entire card */}
+      <Link
+        href={`/trips/${trip.id}`}
+        className="absolute inset-0 z-0 rounded-lg"
+        aria-label={`View ${trip.name}`}
+      />
 
-      <CardContent className="pb-2 space-y-2">
-        <p className="text-xs text-muted-foreground">
-          {formatDateRange(trip.startDate, trip.endDate)}
-        </p>
-
-        <div className="text-xs space-y-1">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">
-              {trip._count.expenses} expense{trip._count.expenses !== 1 ? "s" : ""}
-            </span>
-            <span className={overBudget ? "text-destructive font-medium" : "font-medium"}>
-              ${totalSpent.toFixed(2)}
-              {trip.budget && (
-                <span className="text-muted-foreground font-normal"> / ${trip.budget.toFixed(0)}</span>
-              )}
-            </span>
+      <Card className="border-t-2 border-t-sky-400 transition-shadow group-hover:shadow-md group-hover:border-t-sky-500 cursor-pointer">
+        <CardHeader className="pb-2">
+          <div className="flex items-start justify-between gap-2">
+            <CardTitle className="text-base leading-tight">{trip.name}</CardTitle>
+            <Badge variant="outline" className="text-xs shrink-0">
+              {getTripTypeEmoji(trip.type)} {getTripTypeLabel(trip.type)}
+            </Badge>
           </div>
+          <p className="text-sm text-muted-foreground">{trip.destination}</p>
+        </CardHeader>
 
-          {budgetPct !== null && (
-            <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-              <div
-                className={`h-full rounded-full ${overBudget ? "bg-destructive" : "bg-sky-500"}`}
-                style={{ width: `${budgetPct}%` }}
-              />
+        <CardContent className="pb-2 space-y-2">
+          <p className="text-xs text-muted-foreground">
+            {formatDateRange(trip.startDate, trip.endDate)}
+          </p>
+
+          <div className="text-xs space-y-1">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">
+                {trip._count.expenses} expense{trip._count.expenses !== 1 ? "s" : ""}
+              </span>
+              <span className={overBudget ? "text-destructive font-medium" : "font-medium"}>
+                ${totalSpent.toFixed(2)}
+                {trip.budget && (
+                  <span className="text-muted-foreground font-normal"> / ${trip.budget.toFixed(0)}</span>
+                )}
+              </span>
             </div>
-          )}
-        </div>
-      </CardContent>
 
-      <CardFooter className="gap-2">
-        <Button variant="default" size="sm" asChild className="flex-1">
-          <Link href={`/trips/${trip.id}`}>View</Link>
-        </Button>
+            {budgetPct !== null && (
+              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${overBudget ? "bg-destructive" : "bg-sky-500"}`}
+                  style={{ width: `${budgetPct}%` }}
+                />
+              </div>
+            )}
+          </div>
+        </CardContent>
 
-        <Dialog
-          open={editTripId === trip.id}
-          onOpenChange={(open) => { if (!open) onEditClose(); }}
-        >
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm" onClick={() => onEditOpen(trip)}>
-              Edit
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit {trip.name}</DialogTitle>
-            </DialogHeader>
-            <TripForm
-              trip={trip}
-              onSuccess={() => { onEditClose(); onRefresh(); }}
-              onCancel={onEditClose}
-            />
-          </DialogContent>
-        </Dialog>
+        <CardFooter className="gap-2 relative z-10">
+          <Dialog
+            open={editTripId === trip.id}
+            onOpenChange={(open) => { if (!open) onEditClose(); }}
+          >
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" onClick={() => onEditOpen(trip)}>
+                Edit
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit {trip.name}</DialogTitle>
+              </DialogHeader>
+              <TripForm
+                trip={trip}
+                onSuccess={() => { onEditClose(); onRefresh(); }}
+                onCancel={onEditClose}
+              />
+            </DialogContent>
+          </Dialog>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-destructive hover:text-destructive"
-          onClick={() => onDelete(trip.id, trip.name)}
-        >
-          Delete
-        </Button>
-      </CardFooter>
-    </Card>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+            onClick={() => onDelete(trip.id, trip.name)}
+          >
+            Delete
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
   );
 }
 

@@ -11,6 +11,7 @@ interface RouteParams {
 interface UpdateExpenseBody {
   familyMemberId?: string | null;
   creditCardId?: string | null;
+  paidByParticipantId?: string | null;
   category?: string;
   description?: string;
   amount?: number;
@@ -71,6 +72,7 @@ export async function PATCH(
       data: {
         ...(body.familyMemberId !== undefined && { familyMemberId: body.familyMemberId }),
         ...(body.creditCardId !== undefined && { creditCardId: body.creditCardId }),
+        ...(body.paidByParticipantId !== undefined && { paidByParticipantId: body.paidByParticipantId }),
         ...(body.category !== undefined && { category: body.category }),
         ...(body.description !== undefined && { description: body.description }),
         ...(body.amount !== undefined && { amount: body.amount }),
@@ -81,6 +83,7 @@ export async function PATCH(
       include: {
         familyMember: { select: { id: true, name: true } },
         creditCard: { select: { id: true, name: true, lastFour: true, pointsName: true } },
+        paidByParticipant: { select: { id: true, name: true } },
       },
     });
 
