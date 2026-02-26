@@ -90,6 +90,56 @@ If you cannot determine the root cause from the information provided, ask for:
 4. Whether it fails in CI, locally, or both
 5. Recent changes to `package.json`, config files, or the failing file
 
+### 8. Git & PR Workflow (Windows Git Bash)
+
+This project uses a **topic-branch worktree model**. When running git or `gh` commands, follow these rules:
+
+#### Branch hierarchy
+```
+main
+└── topic/N-slug          (user's PR target — e.g. topic/7-newidea)
+    └── claude/N-slug-xx  (Claude's working branch — PR → topic, NEVER main)
+```
+
+#### Key file
+`.claude/current-topic` — one line: the topic branch name (e.g. `topic/7-newidea`). Read this before creating any PR. Written by `/new-topic`.
+
+#### Always create PRs with --base
+```bash
+TOPIC=$(cat "$(git rev-parse --show-toplevel)/.claude/current-topic")
+gh pr create --base "$TOPIC" --title "..." --body "..."
+```
+**Never** use `gh pr create` without `--base`. Default base is `main`, which is wrong for this project.
+
+#### Switching topics (/new-topic)
+```bash
+# 1. Fetch and prune
+git fetch --prune
+
+# 2. Delete all claude/* branches (and their worktrees)
+git branch -v | grep -E '^\+? +claude/' | sed 's/^[+* ]*//' | awk '{print $1}' | while read b; do
+  wt=$(git worktree list | grep "\[$b\]" | awk '{print $1}')
+  main=$(git rev-parse --show-toplevel)
+  [ -n "$wt" ] && [ "$wt" != "$main" ] && git worktree remove --force "$wt"
+  git branch -D "$b"
+done
+
+# 3. Create new worktree from topic branch
+TOPIC_SHORT="${TOPIC_BRANCH#topic/}"    # e.g. 7-newidea
+SUFFIX=$(date +%Y%m%d%H%M%S | tail -c 7 | head -c 6)  # Windows-safe
+git worktree add ".claude/worktrees/${TOPIC_SHORT}-${SUFFIX}" -b "claude/${TOPIC_SHORT}-${SUFFIX}" "$TOPIC_BRANCH"
+
+# 4. Record topic
+echo "$TOPIC_BRANCH" > "$(git rev-parse --show-toplevel)/.claude/current-topic"
+```
+
+#### Windows Git Bash quirks
+- `/dev/urandom` is unreliable — use `date +%Y%m%d%H%M%S | tail -c 7 | head -c 6` for random suffixes.
+- `gh` must be authenticated: check with `gh auth status`.
+- `git worktree remove --force` is required on Windows if the directory has open handles.
+- Anchor paths with `$(git rev-parse --show-toplevel)` to avoid wrong-directory writes.
+- All worktree directories live under `.claude/worktrees/` (forward slashes work in Git Bash).
+
 **Update your agent memory** as you discover new cross-platform quirks, Windows-specific workarounds, CI pipeline gotchas, and package incompatibilities in this codebase. This builds up institutional knowledge across conversations.
 
 Examples of what to record:
