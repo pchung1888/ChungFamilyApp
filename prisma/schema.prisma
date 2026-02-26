@@ -69,9 +69,10 @@ model Trip {
   notes        String?
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
-  expenses     Expense[]
-  participants TripParticipant[]
-  settlements  Settlement[]
+  expenses        Expense[]
+  participants    TripParticipant[]
+  settlements     Settlement[]
+  itineraryItems  ItineraryItem[]
 }
 
 model Expense {
@@ -136,6 +137,22 @@ model Settlement {
   note      String?
   settledAt DateTime?
   createdAt DateTime        @default(now())
+}
+
+model ItineraryItem {
+  id        String   @id @default(cuid())
+  tripId    String
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  date      DateTime
+  title     String
+  type      String   // "accommodation", "activity", "transport", "flight"
+  location  String?
+  startTime String?  // "09:00" — HH:MM string
+  endTime   String?  // "17:00" — HH:MM string
+  notes     String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Auth.js (NextAuth v5) required models
