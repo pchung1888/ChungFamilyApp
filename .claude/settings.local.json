@@ -27,7 +27,11 @@
       "Bash(cd /d/playground/ChungFamilyApp && npx prisma migrate create --name link-family-member-to-user 2>&1)",
       "Bash(cd /d/playground/ChungFamilyApp && npx prisma migrate deploy 2>&1)",
       "Bash(cmd:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git fetch origin top/6-window-skill)",
+      "Bash(git fetch --all)",
+      "Bash(gh pr:*)",
+      "Bash(npx tsc --noEmit)"
     ]
   }
 }
