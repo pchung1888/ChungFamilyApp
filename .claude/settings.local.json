@@ -27,7 +27,32 @@
       "Bash(cd /d/playground/ChungFamilyApp && npx prisma migrate create --name link-family-member-to-user 2>&1)",
       "Bash(cd /d/playground/ChungFamilyApp && npx prisma migrate deploy 2>&1)",
       "Bash(cmd:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git -C \"D:\\\\playground\\\\ChungFamilyApp\\\\.claude\\\\worktrees\\\\pedantic-noyce\" add docs/GIT.md)",
+      "Bash(git -C \"D:\\\\playground\\\\ChungFamilyApp\\\\.claude\\\\worktrees\\\\pedantic-noyce\" commit -m \"docs\\(git\\): add topic-branch worktree workflow\")",
+      "Bash(git -C \"D:/playground/ChungFamilyApp/.claude/worktrees/pedantic-noyce\" branch -a)",
+      "Bash(git -C \"D:/playground/ChungFamilyApp/.claude/worktrees/pedantic-noyce\" branch --show-current)",
+      "Bash(git -C \"D:/playground/ChungFamilyApp/.claude/worktrees/pedantic-noyce\" add docs/GIT.md)",
+      "Bash(git -C \"D:/playground/ChungFamilyApp/.claude/worktrees/pedantic-noyce\" commit -m \"docs\\(git\\): fix notation consistency and add migration note\")",
+      "Bash(git -C \"D:/playground/ChungFamilyApp/.claude/worktrees/pedantic-noyce\" add .claude/commands/commit-push-pr.md)",
+      "Bash(git -C \"D:/playground/ChungFamilyApp/.claude/worktrees/pedantic-noyce\" commit -m \"feat\\(commands\\): override commit-push-pr to target topic branch\")",
+      "Bash(git -C \"D:\\\\playground\\\\ChungFamilyApp\\\\.claude\\\\worktrees\\\\pedantic-noyce\" add .claude/commands/new-topic.md)",
+      "Bash(git -C \"D:\\\\playground\\\\ChungFamilyApp\\\\.claude\\\\worktrees\\\\pedantic-noyce\" commit -m \"feat\\(commands\\): add new-topic command for topic branch lifecycle\")",
+      "Bash(git -C \"D:/playground/ChungFamilyApp/.claude/worktrees/pedantic-noyce\" add .claude/commands/new-topic.md)",
+      "Bash(git -C \"D:/playground/ChungFamilyApp/.claude/worktrees/pedantic-noyce\" commit -m \"fix\\(commands\\): anchor current-topic path and use post-fetch remote verification\")",
+      "Bash(git -C \"D:/playground/ChungFamilyApp/.claude/worktrees/pedantic-noyce\" add .gitignore)",
+      "Bash(git -C \"D:/playground/ChungFamilyApp/.claude/worktrees/pedantic-noyce\" commit -m \"chore: gitignore .claude/current-topic \\(session-local state\\)\")",
+      "Bash(git -C \"D:/playground/ChungFamilyApp/.claude/worktrees/pedantic-noyce\" add .claude/agents/cross-platform-build-fixer.md)",
+      "Bash(git -C \"D:/playground/ChungFamilyApp/.claude/worktrees/pedantic-noyce\" commit -m \"feat\\(agents\\): add git/PR workflow section to cross-platform-build-fixer\")",
+      "Bash(git -C \"D:\\\\playground\\\\ChungFamilyApp\\\\.claude\\\\worktrees\\\\pedantic-noyce\" add CLAUDE.md)",
+      "Bash(git -C \"D:\\\\playground\\\\ChungFamilyApp\\\\.claude\\\\worktrees\\\\pedantic-noyce\" commit -m \"docs\\(claude\\): add topic-branch workflow rules to git section\")",
+      "Bash(git -C \"D:\\\\playground\\\\ChungFamilyApp\\\\.claude\\\\worktrees\\\\pedantic-noyce\" log --oneline -10)",
+      "Bash(git -C \"D:\\\\playground\\\\ChungFamilyApp\" branch -v)",
+      "Bash(git -C \"D:\\\\playground\\\\ChungFamilyApp\\\\.claude\\\\worktrees\\\\pedantic-noyce\" push -u origin claude/pedantic-noyce)",
+      "Bash(gh pr:*)",
+      "Bash(git -C \"D:\\\\playground\\\\ChungFamilyApp\" branch -r)",
+      "Bash(git -C \"D:\\\\playground\\\\ChungFamilyApp\\\\.claude\\\\worktrees\\\\pedantic-noyce\" status --short)",
+      "Bash(git -C \"D:\\\\playground\\\\ChungFamilyApp\" push -u origin topic/7-newidea)"
     ]
   }
 }

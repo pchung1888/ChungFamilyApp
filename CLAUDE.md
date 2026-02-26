@@ -34,7 +34,13 @@ When the session context is getting long (approaching limits or >90% usage), **p
 Do NOT wait until the session fails. Stop at a clean checkpoint (after a commit or between steps) and hand off cleanly.
 
 ## Git Workflow
-For commit conventions and `.gitignore` patterns, see [docs/GIT.md](docs/GIT.md).
+For commit conventions, `.gitignore` patterns, and the **topic-branch worktree model**, see [docs/GIT.md](docs/GIT.md).
+
+Key rules:
+- Claude branches: `claude/<N>-<slug>-<suffix>` (always scoped to a topic)
+- Claude PRs always target the topic branch, never `main`
+- Start a new topic with `/new-topic topic/<N>-<slug>` — cleans old Claude branches and creates a fresh worktree
+- Current topic is tracked in `.claude/current-topic` (session-local, gitignored)
 
 ## Plan Mode
 - Make the plan extremely concise. Sacrifice grammar for the sake of concision.
