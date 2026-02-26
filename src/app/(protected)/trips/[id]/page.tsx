@@ -28,6 +28,7 @@ import {
 import { ExpenseForm } from "@/components/trips/expense-form";
 import { ParticipantsTab } from "@/components/trips/participants-tab";
 import { BalanceTab } from "@/components/trips/balance-tab";
+import { ItineraryTab } from "@/components/trips/itinerary-tab";
 import { EXPENSE_CATEGORIES, TRIP_TYPES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -73,7 +74,7 @@ interface Trip {
   expenses: Expense[];
 }
 
-type TabId = "expenses" | "participants" | "balance";
+type TabId = "expenses" | "participants" | "balance" | "itinerary";
 
 function getCategoryLabel(value: string): string {
   return EXPENSE_CATEGORIES.find((c) => c.value === value)?.label ?? value;
@@ -106,6 +107,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "expenses", label: "Expenses" },
   { id: "participants", label: "Participants" },
   { id: "balance", label: "Balance" },
+  { id: "itinerary", label: "Itinerary" },
 ];
 
 export default function TripDetailPage({
@@ -488,6 +490,18 @@ export default function TripDetailPage({
         >
           {activeTab === "balance" && (
             <BalanceTab tripId={trip.id} />
+          )}
+        </div>
+
+        {/* Itinerary tab */}
+        <div
+          role="tabpanel"
+          id="tabpanel-itinerary"
+          aria-labelledby="tab-itinerary"
+          hidden={activeTab !== "itinerary"}
+        >
+          {activeTab === "itinerary" && (
+            <ItineraryTab tripId={trip.id} />
           )}
         </div>
       </div>
