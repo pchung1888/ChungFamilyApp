@@ -132,7 +132,7 @@ describe("Loading state", () => {
     vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
     renderTab();
     expect(screen.getByText(/loading itinerary/i)).toBeInTheDocument();
-    expect(screen.queryByText(/add item/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/add item/i)).toBeInTheDocument();
   });
 });
 
