@@ -347,3 +347,214 @@ describe("onSuccess callback", () => {
     await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());
   });
 });
+
+const EXPENSE_WITH_RECEIPT: MockExpense = {
+  ...EXISTING_EXPENSE,
+  receiptPath: "receipts/test-receipt.jpg",
+};
+
+describe("Receipt UI — with existing receiptPath", () => {
+  it("shows receipt image preview when expense has receiptPath", async () => {
+    mockParticipantsOnly([]);
+    renderForm({ expense: EXPENSE_WITH_RECEIPT });
+    await waitForParticipantsLoaded();
+    const img = screen.getByAltText(/receipt preview/i);
+    expect(img).toBeInTheDocument();
+    expect((img as HTMLImageElement).src).toContain("receipts/test-receipt.jpg");
+  });
+
+  it("shows '× Remove' button when receipt is set", async () => {
+    mockParticipantsOnly([]);
+    renderForm({ expense: EXPENSE_WITH_RECEIPT });
+    await waitForParticipantsLoaded();
+    expect(screen.getByRole("button", { name: /remove/i })).toBeInTheDocument();
+  });
+
+  it("shows '✨ Scan with AI' button when receiptPath is set", async () => {
+    mockParticipantsOnly([]);
+    renderForm({ expense: EXPENSE_WITH_RECEIPT });
+    await waitForParticipantsLoaded();
+    expect(screen.getByRole("button", { name: /scan with ai/i })).toBeInTheDocument();
+  });
+
+  it("clicking '× Remove' switches back to Attach Receipt button", async () => {
+    mockParticipantsOnly([]);
+    renderForm({ expense: EXPENSE_WITH_RECEIPT });
+    await waitForParticipantsLoaded();
+
+    await userEvent.click(screen.getByRole("button", { name: /remove/i }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /attach receipt/i })).toBeInTheDocument()
+    );
+    expect(screen.queryByAltText(/receipt preview/i)).not.toBeInTheDocument();
+  });
+
+  it("scan fills fields on success", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          json: () => Promise.resolve({ data: [], error: null }), // participants
+        })
+        .mockResolvedValueOnce({
+          json: () =>
+            Promise.resolve({
+              data: {
+                amount: 123.45,
+                date: "2025-09-10",
+                description: "Scanned Hotel",
+                category: "hotel",
+              },
+              error: null,
+            }),
+        })
+    );
+
+    renderForm({ expense: EXPENSE_WITH_RECEIPT });
+    await waitForParticipantsLoaded();
+
+    await userEvent.click(screen.getByRole("button", { name: /scan with ai/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/fields filled from receipt/i)).toBeInTheDocument()
+    );
+
+    const descriptionInput = screen.getByLabelText(/description/i) as HTMLInputElement;
+    expect(descriptionInput.value).toBe("Scanned Hotel");
+    const amountInput = screen.getByLabelText(/amount/i) as HTMLInputElement;
+    expect(amountInput.value).toBe("123.45");
+  });
+
+  it("scan shows error when AI cannot read fields", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          json: () => Promise.resolve({ data: [], error: null }),
+        })
+        .mockResolvedValueOnce({
+          json: () =>
+            Promise.resolve({
+              data: { amount: null, date: null, description: null, category: null },
+              error: null,
+            }),
+        })
+    );
+
+    renderForm({ expense: EXPENSE_WITH_RECEIPT });
+    await waitForParticipantsLoaded();
+
+    await userEvent.click(screen.getByRole("button", { name: /scan with ai/i }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/AI could not read any fields from this receipt/i)
+      ).toBeInTheDocument()
+    );
+  });
+
+  it("scan shows error message from API", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          json: () => Promise.resolve({ data: [], error: null }),
+        })
+        .mockResolvedValueOnce({
+          json: () => Promise.resolve({ data: null, error: "Scan failed" }),
+        })
+    );
+
+    renderForm({ expense: EXPENSE_WITH_RECEIPT });
+    await waitForParticipantsLoaded();
+
+    await userEvent.click(screen.getByRole("button", { name: /scan with ai/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/scan failed/i)).toBeInTheDocument()
+    );
+  });
+});
+
+describe("Split mode UI", () => {
+  it("shows per-person breakdown text in Equal per Person mode when amount is filled", async () => {
+    mockParticipantsOnly(PARTICIPANTS);
+    renderForm();
+    await waitFor(() =>
+      expect(screen.getByText(/^split$/i)).toBeInTheDocument()
+    );
+
+    await userEvent.type(screen.getByLabelText(/amount/i), "100");
+    await userEvent.click(screen.getByRole("button", { name: /equal per person/i }));
+
+    // "Split equally among 2 participants" is unique to the pills section
+    await waitFor(() =>
+      expect(screen.getByText(/split equally among 2 participant/i)).toBeInTheDocument()
+    );
+  });
+
+  it("shows group breakdown in Equal by Group mode when amount is filled", async () => {
+    const groupParticipants: MockParticipant[] = [
+      { id: "p-1", name: "Alice", groupName: "Family" },
+      { id: "p-2", name: "Bob", groupName: "Family" },
+      { id: "p-3", name: "Carol", groupName: null },
+    ];
+    mockParticipantsOnly(groupParticipants);
+    renderForm();
+    await waitFor(() =>
+      expect(screen.getByText(/^split$/i)).toBeInTheDocument()
+    );
+
+    await userEvent.type(screen.getByLabelText(/amount/i), "90");
+    await userEvent.click(screen.getByRole("button", { name: /equal by group/i }));
+
+    // 2 groups (Family + Carol solo) → $45.00 per group
+    await waitFor(() =>
+      expect(screen.getByText(/split equally among 2 group/i)).toBeInTheDocument()
+    );
+  });
+
+  it("includes splits in POST body when equal_person mode active", async () => {
+    mockParticipantsOnly(PARTICIPANTS);
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          json: () => Promise.resolve({ data: PARTICIPANTS, error: null }),
+        })
+        .mockResolvedValueOnce({
+          json: () => Promise.resolve({ data: { id: "exp-new" }, error: null }),
+        })
+    );
+
+    const { onSuccess } = renderForm();
+    await waitFor(() =>
+      expect(screen.getByText(/^split$/i)).toBeInTheDocument()
+    );
+
+    await userEvent.type(screen.getByLabelText(/description/i), "Hotel");
+    await userEvent.type(screen.getByLabelText(/amount/i), "100");
+    await userEvent.click(screen.getByRole("button", { name: /equal per person/i }));
+
+    document.querySelector("form")!.setAttribute("novalidate", "");
+    await userEvent.click(screen.getByRole("button", { name: /add expense/i }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());
+
+    const fetchMock = vi.mocked(fetch);
+    const submitCall = fetchMock.mock.calls.find(([url]) =>
+      (url as string) === `/api/trips/${TRIP_ID}/expenses`
+    );
+    expect(submitCall).toBeDefined();
+    const [, opts] = submitCall as [string, RequestInit];
+    const body = JSON.parse(opts.body as string) as { splits: Array<{ participantId: string; amount: number }> };
+    expect(body.splits).toBeDefined();
+    expect(body.splits).toHaveLength(2);
+    expect(body.splits[0].amount).toBe(50);
+  });
+});
