@@ -31,6 +31,18 @@ Current baseline (Feb 2026): **92.7 % lines · 92.0 % statements · 86.7 % branc
 `.github/workflows/test.yml` runs `npm run coverage` on every push and pull request.
 There is no branch protection rule; the CI failure is advisory but strongly encouraged to fix before merging.
 
+
+### Diagnosing CI failures with Claude Code
+
+**GitHub:** Ask Claude Code `"check PR #<N> for failures"` — it will run
+`gh pr checks` and `gh run view --log-failed` to pull the error logs.
+
+**GitLab:** Install `glab` CLI and ask `"check MR \!<N> pipeline"` — Claude
+runs `glab ci view` to fetch the failure output.
+
+Alternatively, paste the failure text from the Actions/pipeline UI directly
+into the chat window and Claude will diagnose it inline.
+
 ### Adding coverage for new code
 Every new component or API route must have a companion test in a co-located `__tests__/` folder.
 Run `npm run coverage` locally before pushing to verify you haven't dropped below the thresholds.
