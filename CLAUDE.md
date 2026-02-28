@@ -33,6 +33,25 @@ When the session context is getting long (approaching limits or >90% usage), **p
 
 Do NOT wait until the session fails. Stop at a clean checkpoint (after a commit or between steps) and hand off cleanly.
 
+## Long-Running Tasks
+For any task spanning 3+ files or phases (e.g., expanding test coverage, refactoring routes):
+1. **Before starting** — create `PROGRESS_TRACKER.md` in the repo root:
+   ```markdown
+   # Progress: <task name>
+   ## Target files
+   - [ ] path/to/file1
+   - [ ] path/to/file2
+   ...
+   ```
+2. **Work autonomously (yolo mode)** — proceed through all files without pausing between them.
+3. **Track progress in real-time:**
+   - Check off each file in `PROGRESS_TRACKER.md` (`[x]`) as completed
+   - **Batch updates to chat** — post a 2–3 line summary every 3–5 files, not after each one
+   - Example: `✓ Done: family routes, cards routes, benefits routes — wrote tests and verified pass`
+4. **Token discipline** — never repeat file contents in chat; reference paths only. Batch updates keep context lean.
+5. **Final summary** — after all files are done, post one summary line and final commit message.
+6. **Clean up** — delete `PROGRESS_TRACKER.md` after the final commit.
+
 ## Git Workflow
 For commit conventions, `.gitignore` patterns, and the **topic-branch worktree model**, see [docs/GIT.md](docs/GIT.md).
 

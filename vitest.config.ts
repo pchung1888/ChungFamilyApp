@@ -28,11 +28,11 @@ export default defineConfig({
     setupFiles: ["./src/test-setup.ts"],
     coverage: {
       provider: "v8",
-      include: ["src/components/**"],
+      include: ["src/components/**", "src/app/api/**"],
       exclude: ["src/components/ui/**"],
       reporter: ["text", "html"],
-      // TODO: re-enable global thresholds once all components have tests:
-      // thresholds: { lines: 80, functions: 80, branches: 80, statements: 80 }
+      // Lines/statements ≥ 90 %; branches/functions ≥ 85 % (targeting 90 % across all)
+      thresholds: { lines: 90, statements: 90, branches: 85, functions: 83 }
     },
   },
 });
