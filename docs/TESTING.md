@@ -39,6 +39,8 @@ Run `npm run coverage` locally before pushing to verify you haven't dropped belo
 - Tests live in co-located `__tests__/` folders next to the component they test
 - Reference test: `src/components/family/__tests__/family-form.test.tsx` (10 tests, ~95% coverage)
 
+> For multi-route test expansion tasks, follow the Long-Running Tasks protocol in `CLAUDE.md`.
+
 ## Known Quirks
 
 ### vitest.config.ts aliases
