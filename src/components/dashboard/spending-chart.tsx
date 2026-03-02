@@ -27,8 +27,11 @@ const CATEGORY_STYLES: Record<string, CategoryStyle> = {
   gas:         { bar: "bg-yellow-400",  text: "text-yellow-700",  bg: "bg-yellow-50",  dot: "bg-yellow-400"  },
   ev_charging: { bar: "bg-emerald-400", text: "text-emerald-700", bg: "bg-emerald-50", dot: "bg-emerald-400" },
   tours:       { bar: "bg-pink-400",    text: "text-pink-700",    bg: "bg-pink-50",    dot: "bg-pink-400"    },
-  shopping:    { bar: "bg-red-400",     text: "text-red-700",     bg: "bg-red-50",     dot: "bg-red-400"     },
-  other:       { bar: "bg-gray-400",    text: "text-gray-600",    bg: "bg-gray-50",    dot: "bg-gray-400"    },
+  shopping:       { bar: "bg-red-400",     text: "text-red-700",     bg: "bg-red-50",     dot: "bg-red-400"     },
+  transportation: { bar: "bg-blue-400",   text: "text-blue-700",   bg: "bg-blue-50",   dot: "bg-blue-400"   },
+  entertainment:  { bar: "bg-purple-400", text: "text-purple-700", bg: "bg-purple-50", dot: "bg-purple-400" },
+  snacks:         { bar: "bg-amber-400",  text: "text-amber-700",  bg: "bg-amber-50",  dot: "bg-amber-400"  },
+  other:          { bar: "bg-gray-400",   text: "text-gray-600",   bg: "bg-gray-50",   dot: "bg-gray-400"   },
 };
 
 const DEFAULT_STYLE: CategoryStyle = {

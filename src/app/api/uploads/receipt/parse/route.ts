@@ -81,7 +81,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         "- amount: total amount charged (number after tax, e.g. 42.50). Null if unclear.\n" +
         '- date: transaction date as "YYYY-MM-DD". Null if not found.\n' +
         '- description: merchant name, max 60 chars (e.g. "Hilton Garden Inn"). Null if unclear.\n' +
-        "- category: best match from: hotel, flight, food, gas, ev_charging, tours, shopping, other.\n\n" +
+        "- category: best match from: hotel, flight, food, gas, ev_charging, tours, shopping, transportation, entertainment, snacks, other.\n\n" +
         "Respond ONLY with valid JSON, no markdown, no explanation:\n" +
         '{"amount": <number|null>, "date": "<YYYY-MM-DD|null>", "description": "<string|null>", "category": "<string|null>"}',
     ]);

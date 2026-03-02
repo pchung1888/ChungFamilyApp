@@ -85,7 +85,7 @@ model Expense {
   creditCard           CreditCard?      @relation(fields: [creditCardId], references: [id], onDelete: SetNull)
   paidByParticipantId  String?
   paidByParticipant    TripParticipant? @relation("PaidByParticipant", fields: [paidByParticipantId], references: [id], onDelete: SetNull)
-  category             String           // hotel, flight, food, gas, ev_charging, tours, shopping, other
+  category             String           // hotel, flight, food, gas, ev_charging, tours, shopping, transportation, entertainment, snacks, other
   description          String
   amount               Float
   date                 DateTime

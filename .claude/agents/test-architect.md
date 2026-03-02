@@ -156,6 +156,7 @@ Before delivering any test suite, verify:
 - [ ] Test names are descriptive and behavior-focused
 - [ ] No implementation details leaked into test assertions
 - [ ] **For any list/tab component:** empty list → friendly message (not an error); fetch error → error shown inline AND add button still visible; loading → add button still visible
+- [ ] **Snapshot date stability:** Any snapshot that renders a date, countdown, or relative time label (`"X d away"`, `"Tomorrow"`, `"Today!"`, or any formatted date string) MUST freeze the clock in its `describe` block — `vi.useFakeTimers()` + `vi.setSystemTime(new Date("2026-01-15T12:00:00Z"))` in `beforeAll`, `vi.useRealTimers()` in `afterAll`. Never leave a snapshot running against real `Date.now()`. See: `docs/TESTING.md › Known Quirks › Snapshot date stability`
 
 **Update your agent memory** as you discover testing patterns, common mocking strategies, reusable test utilities, flaky test causes, and business rules that need coverage in this codebase. This builds up institutional knowledge across conversations.
 
