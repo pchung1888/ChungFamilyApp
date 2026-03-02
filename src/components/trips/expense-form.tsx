@@ -42,6 +42,8 @@ interface Expense {
   date: string;
   pointsEarned: number;
   receiptPath: string | null;
+  receiptGroupId: string | null;
+  lineItemIndex: number | null;
 }
 
 /** Props for ExpenseForm */

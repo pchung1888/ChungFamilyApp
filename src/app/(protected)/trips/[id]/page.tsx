@@ -57,6 +57,8 @@ interface Expense {
   date: string;
   pointsEarned: number;
   receiptPath: string | null;
+  receiptGroupId: string | null;
+  lineItemIndex: number | null;
   familyMember: { id: string; name: string } | null;
   creditCard: { id: string; name: string; lastFour: string; pointsName: string } | null;
   paidByParticipant: { id: string; name: string } | null;
