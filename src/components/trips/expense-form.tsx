@@ -207,10 +207,10 @@ export function ExpenseForm({
       if (result.date) setDate(result.date);
       setLineItems(null);
       setScanStatus("success");
-      setScanMessage("1 item filled from receipt");
+      setScanMessage("Fields filled from receipt");
     } else {
       setScanStatus("error");
-      setScanMessage("AI could not read any items from this receipt");
+      setScanMessage("AI could not read any fields from this receipt");
     }
   }
 
@@ -388,7 +388,7 @@ export function ExpenseForm({
         {/* Paid By */}
         {participants.length > 0 ? (
           <div className="space-y-2">
-            <Label htmlFor="paid-by-participant">Paid By</Label>
+            <Label htmlFor="paid-by-participant">Paid By (Participant)</Label>
             <Select value={paidByParticipantId} onValueChange={setPaidByParticipantId}>
               <SelectTrigger id="paid-by-participant">
                 <SelectValue placeholder="Anyone" />

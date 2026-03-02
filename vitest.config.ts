@@ -26,6 +26,7 @@ export default defineConfig({
     environment: "happy-dom",
     globals: true,
     setupFiles: ["./src/test-setup.ts"],
+    exclude: ["**/node_modules/**", "**/.git/**", ".claude/worktrees/**"],
     coverage: {
       provider: "v8",
       include: ["src/components/**", "src/app/api/**"],

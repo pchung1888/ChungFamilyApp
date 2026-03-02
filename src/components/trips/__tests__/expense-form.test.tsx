@@ -406,10 +406,9 @@ describe("Receipt UI — with existing receiptPath", () => {
           json: () =>
             Promise.resolve({
               data: {
-                amount: 123.45,
+                merchantName: "Grand Hotel",
                 date: "2025-09-10",
-                description: "Scanned Hotel",
-                category: "hotel",
+                items: [{ description: "Scanned Hotel", amount: 123.45, category: "hotel" }],
               },
               error: null,
             }),
@@ -442,7 +441,7 @@ describe("Receipt UI — with existing receiptPath", () => {
         .mockResolvedValueOnce({
           json: () =>
             Promise.resolve({
-              data: { amount: null, date: null, description: null, category: null },
+              data: { merchantName: null, date: null, items: [] },
               error: null,
             }),
         })

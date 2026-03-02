@@ -78,6 +78,39 @@ interface Trip {
 
 type TabId = "expenses" | "participants" | "balance" | "itinerary";
 
+interface ExpenseGroup {
+  receiptGroupId: string | null;
+  expenses: Expense[];
+  isGroup: boolean;
+}
+
+function groupExpenses(expenses: Expense[]): ExpenseGroup[] {
+  const groups: ExpenseGroup[] = [];
+  const seen = new Map<string, ExpenseGroup>();
+
+  for (const expense of expenses) {
+    if (expense.receiptGroupId) {
+      const existing = seen.get(expense.receiptGroupId);
+      if (existing) {
+        existing.expenses.push(expense);
+        existing.isGroup = existing.expenses.length > 1;
+      } else {
+        const group: ExpenseGroup = {
+          receiptGroupId: expense.receiptGroupId,
+          expenses: [expense],
+          isGroup: false,
+        };
+        seen.set(expense.receiptGroupId, group);
+        groups.push(group);
+      }
+    } else {
+      groups.push({ receiptGroupId: null, expenses: [expense], isGroup: false });
+    }
+  }
+
+  return groups;
+}
+
 function getCategoryLabel(value: string): string {
   return EXPENSE_CATEGORIES.find((c) => c.value === value)?.label ?? value;
 }
@@ -91,6 +124,13 @@ function formatDate(value: string): string {
     month: "short",
     day: "numeric",
     year: "numeric",
+  });
+}
+
+function formatShortDate(value: string): string {
+  return new Date(value).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
   });
 }
 
@@ -130,6 +170,7 @@ export default function TripDetailPage({
   const [editExpense, setEditExpense] = useState<Expense | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("expenses");
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const fetchTrip = useCallback(async (): Promise<void> => {
     const res = await fetch(`/api/trips/${id}`);
@@ -163,6 +204,18 @@ export default function TripDetailPage({
     void fetchTrip();
   }
 
+  function toggleGroup(receiptGroupId: string): void {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(receiptGroupId)) {
+        next.delete(receiptGroupId);
+      } else {
+        next.add(receiptGroupId);
+      }
+      return next;
+    });
+  }
+
   if (loading) return <p className="text-muted-foreground">Loading…</p>;
   if (!trip) return <p className="text-destructive">Trip not found.</p>;
 
@@ -171,7 +224,6 @@ export default function TripDetailPage({
   const budgetPct = trip.budget ? Math.min((totalSpent / trip.budget) * 100, 100) : null;
   const overBudget = trip.budget !== null && totalSpent > trip.budget;
 
-  // Category totals
   const categoryTotals = EXPENSE_CATEGORIES.map((cat) => ({
     ...cat,
     total: trip.expenses
@@ -179,9 +231,11 @@ export default function TripDetailPage({
       .reduce((sum, e) => sum + e.amount, 0),
   })).filter((c) => c.total > 0);
 
+  const expenseGroups = groupExpenses(trip.expenses);
+
   return (
     <div className="space-y-6">
-      {/* Header — travel theme banner */}
+      {/* Header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-700 via-blue-600 to-indigo-700 p-6 text-white shadow-lg">
         <div className="pointer-events-none absolute -right-4 -top-4 select-none text-[7rem] leading-none opacity-[0.1]">
           {trip.type === "road_trip" ? "🚗" : trip.type === "local" ? "📍" : "✈️"}
@@ -189,10 +243,7 @@ export default function TripDetailPage({
         <div className="relative flex items-start justify-between gap-4">
           <div>
             <div className="mb-1">
-              <Link
-                href="/trips"
-                className="text-sm text-sky-200 hover:text-white transition-colors"
-              >
+              <Link href="/trips" className="text-sm text-sky-200 hover:text-white transition-colors">
                 ← Trips
               </Link>
             </div>
@@ -208,9 +259,7 @@ export default function TripDetailPage({
                 {trip.endDate && ` – ${formatDate(trip.endDate)}`}
               </span>
             </div>
-            {trip.notes && (
-              <p className="text-sm text-sky-200 mt-1">{trip.notes}</p>
-            )}
+            {trip.notes && <p className="text-sm text-sky-200 mt-1">{trip.notes}</p>}
           </div>
 
           <Dialog open={addOpen} onOpenChange={setAddOpen}>
@@ -321,11 +370,7 @@ export default function TripDetailPage({
 
       {/* Tab navigation */}
       <div className="space-y-4">
-        <div
-          className="flex gap-1 border-b"
-          role="tablist"
-          aria-label="Trip sections"
-        >
+        <div className="flex gap-1 border-b" role="tablist" aria-label="Trip sections">
           {TABS.map((tab) => (
             <button
               key={tab.id}
@@ -375,97 +420,196 @@ export default function TripDetailPage({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {trip.expenses.map((expense) => (
-                        <TableRow key={expense.id}>
-                          <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                            {new Date(expense.date).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </TableCell>
-                          <TableCell className="font-medium">{expense.description}</TableCell>
-                          <TableCell>
-                            <Badge
-                              className={`text-xs ${CATEGORY_COLORS[expense.category] ?? "bg-gray-100 text-gray-800"}`}
-                            >
-                              {getCategoryLabel(expense.category)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {expense.paidByParticipant?.name ?? expense.familyMember?.name ?? "—"}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {expense.creditCard
-                              ? `···${expense.creditCard.lastFour}`
-                              : "—"}
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            ${expense.amount.toFixed(2)}
-                          </TableCell>
-                          <TableCell className="text-right text-sm text-muted-foreground">
-                            {expense.pointsEarned > 0 ? expense.pointsEarned.toLocaleString() : "—"}
-                          </TableCell>
-                          <TableCell>
-                            {expense.receiptPath ? (
-                              <button
-                                type="button"
-                                onClick={() => setLightboxUrl(`/uploads/receipts/${expense.receiptPath}`)}
-                                className="block"
-                              >
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={`/uploads/receipts/${expense.receiptPath}`}
-                                  alt="Receipt"
-                                  className="h-9 w-9 rounded object-cover ring-1 ring-border"
-                                />
-                              </button>
-                            ) : (
-                              <span className="text-muted-foreground/30 text-lg">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-1 justify-end">
-                              <Dialog
-                                open={editExpense?.id === expense.id}
-                                onOpenChange={(open) => { if (!open) setEditExpense(null); }}
-                              >
-                                <DialogTrigger asChild>
+                      {expenseGroups.flatMap((group) => {
+                        const firstExpense = group.expenses[0]!;
+
+                        if (!group.isGroup) {
+                          const expense = firstExpense;
+                          return [
+                            <TableRow key={expense.id}>
+                              <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                                {formatShortDate(expense.date)}
+                              </TableCell>
+                              <TableCell className="font-medium">{expense.description}</TableCell>
+                              <TableCell>
+                                <Badge className={`text-xs ${CATEGORY_COLORS[expense.category] ?? "bg-gray-100 text-gray-800"}`}>
+                                  {getCategoryLabel(expense.category)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {expense.paidByParticipant?.name ?? expense.familyMember?.name ?? "—"}
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {expense.creditCard ? `···${expense.creditCard.lastFour}` : "—"}
+                              </TableCell>
+                              <TableCell className="text-right font-medium">
+                                ${expense.amount.toFixed(2)}
+                              </TableCell>
+                              <TableCell className="text-right text-sm text-muted-foreground">
+                                {expense.pointsEarned > 0 ? expense.pointsEarned.toLocaleString() : "—"}
+                              </TableCell>
+                              <TableCell>
+                                {expense.receiptPath ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setLightboxUrl(`/uploads/receipts/${expense.receiptPath}`)}
+                                    className="block"
+                                  >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src={`/uploads/receipts/${expense.receiptPath}`}
+                                      alt="Receipt"
+                                      className="h-9 w-9 rounded object-cover ring-1 ring-border"
+                                    />
+                                  </button>
+                                ) : (
+                                  <span className="text-muted-foreground/30 text-lg">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-1 justify-end">
+                                  <Dialog
+                                    open={editExpense?.id === expense.id}
+                                    onOpenChange={(open) => { if (!open) setEditExpense(null); }}
+                                  >
+                                    <DialogTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-xs"
+                                        onClick={() => setEditExpense(expense)}
+                                      >
+                                        Edit
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-lg">
+                                      <DialogHeader>
+                                        <DialogTitle>Edit Expense</DialogTitle>
+                                      </DialogHeader>
+                                      <ExpenseForm
+                                        tripId={trip.id}
+                                        expense={editExpense ?? undefined}
+                                        familyMembers={familyMembers}
+                                        creditCards={creditCards}
+                                        onSuccess={() => { setEditExpense(null); void fetchTrip(); }}
+                                        onCancel={() => setEditExpense(null)}
+                                      />
+                                    </DialogContent>
+                                  </Dialog>
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-7 px-2 text-xs"
-                                    onClick={() => setEditExpense(expense)}
+                                    className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                                    onClick={() => void handleDeleteExpense(expense.id, expense.description)}
                                   >
-                                    Edit
+                                    ×
                                   </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-lg">
-                                  <DialogHeader>
-                                    <DialogTitle>Edit Expense</DialogTitle>
-                                  </DialogHeader>
-                                  <ExpenseForm
-                                    tripId={trip.id}
-                                    expense={editExpense ?? undefined}
-                                    familyMembers={familyMembers}
-                                    creditCards={creditCards}
-                                    onSuccess={() => { setEditExpense(null); void fetchTrip(); }}
-                                    onCancel={() => setEditExpense(null)}
-                                  />
-                                </DialogContent>
-                              </Dialog>
+                                </div>
+                              </TableCell>
+                            </TableRow>,
+                          ];
+                        }
 
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 px-2 text-xs text-destructive hover:text-destructive"
-                                onClick={() => void handleDeleteExpense(expense.id, expense.description)}
-                              >
-                                ×
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                        // Receipt group
+                        const groupTotal = group.expenses.reduce((s, e) => s + e.amount, 0);
+                        const groupPoints = group.expenses.reduce((s, e) => s + e.pointsEarned, 0);
+                        const isExpanded = expandedGroups.has(group.receiptGroupId!);
+                        const paidBy =
+                          firstExpense.paidByParticipant?.name ??
+                          firstExpense.familyMember?.name ??
+                          "—";
+                        const card = firstExpense.creditCard
+                          ? `···${firstExpense.creditCard.lastFour}`
+                          : "—";
+
+                        return [
+                          <TableRow
+                            key={`group-${group.receiptGroupId}`}
+                            className="bg-muted/30 hover:bg-muted/50 cursor-pointer select-none"
+                            onClick={() => toggleGroup(group.receiptGroupId!)}
+                          >
+                            <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                              {formatShortDate(firstExpense.date)}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              <span className="mr-1.5 text-xs text-muted-foreground">
+                                {isExpanded ? "▼" : "▶"}
+                              </span>
+                              📋 {group.expenses.length} items
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-xs text-muted-foreground italic">receipt group</span>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{paidBy}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{card}</TableCell>
+                            <TableCell className="text-right font-semibold">
+                              ${groupTotal.toFixed(2)}
+                            </TableCell>
+                            <TableCell className="text-right text-sm text-muted-foreground">
+                              {groupPoints > 0 ? groupPoints.toLocaleString() : "—"}
+                            </TableCell>
+                            <TableCell>
+                              {firstExpense.receiptPath ? (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setLightboxUrl(`/uploads/receipts/${firstExpense.receiptPath}`);
+                                  }}
+                                  className="block"
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={`/uploads/receipts/${firstExpense.receiptPath}`}
+                                    alt="Receipt"
+                                    className="h-9 w-9 rounded object-cover ring-1 ring-border"
+                                  />
+                                </button>
+                              ) : (
+                                <span className="text-muted-foreground/30 text-lg">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell />
+                          </TableRow>,
+                          ...(isExpanded
+                            ? group.expenses
+                                .slice()
+                                .sort((a, b) => (a.lineItemIndex ?? 0) - (b.lineItemIndex ?? 0))
+                                .map((expense) => (
+                                  <TableRow key={expense.id} className="bg-background/50">
+                                    <TableCell />
+                                    <TableCell className="pl-8 text-sm text-muted-foreground">
+                                      {expense.description}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge className={`text-xs ${CATEGORY_COLORS[expense.category] ?? "bg-gray-100 text-gray-800"}`}>
+                                        {getCategoryLabel(expense.category)}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell />
+                                    <TableCell />
+                                    <TableCell className="text-right text-sm font-medium">
+                                      ${expense.amount.toFixed(2)}
+                                    </TableCell>
+                                    <TableCell className="text-right text-sm text-muted-foreground">
+                                      {expense.pointsEarned > 0 ? expense.pointsEarned.toLocaleString() : "—"}
+                                    </TableCell>
+                                    <TableCell />
+                                    <TableCell>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                                        onClick={() => void handleDeleteExpense(expense.id, expense.description)}
+                                      >
+                                        ×
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                ))
+                            : []),
+                        ];
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -493,9 +637,7 @@ export default function TripDetailPage({
           aria-labelledby="tab-balance"
           hidden={activeTab !== "balance"}
         >
-          {activeTab === "balance" && (
-            <BalanceTab tripId={trip.id} />
-          )}
+          {activeTab === "balance" && <BalanceTab tripId={trip.id} />}
         </div>
 
         {/* Itinerary tab */}
@@ -505,9 +647,7 @@ export default function TripDetailPage({
           aria-labelledby="tab-itinerary"
           hidden={activeTab !== "itinerary"}
         >
-          {activeTab === "itinerary" && (
-            <ItineraryTab tripId={trip.id} />
-          )}
+          {activeTab === "itinerary" && <ItineraryTab tripId={trip.id} />}
         </div>
       </div>
 
