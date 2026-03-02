@@ -74,3 +74,21 @@ Run `npm run coverage` locally before pushing to verify you haven't dropped belo
 - `step="0.01"` / `step="0.1"` inputs trigger `stepMismatch` in happy-dom — work around by adding `document.querySelector("form")!.setAttribute("novalidate", "")` before click
 - `window.confirm` / `window.alert` stubs in `src/test-setup.ts` are guarded with `typeof window !== "undefined"` so they don't throw in `@vitest-environment node` tests
 - Date formatting tests: use `new Date(year, monthIndex, day)` local constructor (not ISO strings) to avoid UTC-offset shifts
+
+### Snapshot date stability
+Snapshots that render dates or relative labels calculated from `Date.now()` drift and fail as real time advances. Any snapshot `describe` block that renders date-derived content **MUST** freeze the clock:
+
+```ts
+describe("MyComponent snapshots", () => {
+  beforeAll(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-15T12:00:00Z")); // fixed past date — never drifts
+  });
+  afterAll(() => { vi.useRealTimers(); });
+  ...
+});
+```
+
+**Rule:** If a snapshot contains formatted dates, relative labels (`"X d away"`, `"Tomorrow"`, `"Today!"`), or any string derived from `Date.now()` — freeze the clock. Use a clearly past fixed date so it is obvious the time is pinned, not real.
+
+Non-snapshot tests that assert relative labels (e.g. `"5d away"`) do NOT need frozen clocks — they compute relative to the same `Date.now()` in both the fixture and the component, so they are always correct.

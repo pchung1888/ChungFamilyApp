@@ -63,6 +63,17 @@ function daysFromNow(n: number): Date {
 // ─── Snapshots ────────────────────────────────────────────────────────────────
 
 describe("UpcomingTrips snapshots", () => {
+  // Freeze time so snapshot date strings never drift as real time advances.
+  // Rule: any snapshot that renders a date or relative label MUST pin the clock.
+  // See: docs/TESTING.md › Known Quirks › Snapshot date stability
+  beforeAll(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-15T12:00:00Z"));
+  });
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
   it("renders empty state correctly", () => {
     const { container } = render(<UpcomingTrips trips={[]} />);
     expect(container).toMatchSnapshot();
