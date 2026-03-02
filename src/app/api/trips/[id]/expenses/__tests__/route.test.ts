@@ -230,7 +230,7 @@ describe("POST /api/trips/[id]/expenses", () => {
   });
 
   it("returns 201 for every valid category value", async () => {
-    const validCategories = ["hotel", "flight", "food", "gas", "ev_charging", "tours", "shopping", "other"];
+    const validCategories = ["hotel", "flight", "food", "gas", "ev_charging", "tours", "shopping", "transportation", "entertainment", "snacks", "other"];
 
     for (const category of validCategories) {
       mockCreate.mockResolvedValue({ ...sampleExpense, category } as never);

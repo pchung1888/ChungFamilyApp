@@ -128,6 +128,31 @@ describe("RecentExpenses — expense fields", () => {
     expect(screen.getByText("Tours & Activities")).toBeInTheDocument();
   });
 
+  it("shows the category label 'Transportation' for category 'transportation'", () => {
+    render(
+      <RecentExpenses
+        expenses={[makeExpense({ category: "transportation" })]}
+      />
+    );
+    expect(screen.getByText("Transportation")).toBeInTheDocument();
+  });
+
+  it("shows the category label 'Entertainment' for category 'entertainment'", () => {
+    render(
+      <RecentExpenses
+        expenses={[makeExpense({ category: "entertainment" })]}
+      />
+    );
+    expect(screen.getByText("Entertainment")).toBeInTheDocument();
+  });
+
+  it("shows the category label 'Snacks' for category 'snacks'", () => {
+    render(
+      <RecentExpenses expenses={[makeExpense({ category: "snacks" })]} />
+    );
+    expect(screen.getByText("Snacks")).toBeInTheDocument();
+  });
+
   it("shows date formatted as 'Mar 15' for March 15 2026", () => {
     // Use local Date constructor (year, monthIndex, day) to avoid UTC midnight
     // shifting the date to the previous day in negative-offset timezones.
