@@ -6,6 +6,9 @@ export const EXPENSE_CATEGORIES = [
   { value: "ev_charging", label: "EV Charging" },
   { value: "tours", label: "Tours & Activities" },
   { value: "shopping", label: "Shopping" },
+  { value: "transportation", label: "Transportation" },
+  { value: "entertainment", label: "Entertainment" },
+  { value: "snacks", label: "Snacks" },
   { value: "other", label: "Other" },
 ] as const;
 

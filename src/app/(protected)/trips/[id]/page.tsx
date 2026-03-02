@@ -57,6 +57,8 @@ interface Expense {
   date: string;
   pointsEarned: number;
   receiptPath: string | null;
+  receiptGroupId: string | null;
+  lineItemIndex: number | null;
   familyMember: { id: string; name: string } | null;
   creditCard: { id: string; name: string; lastFour: string; pointsName: string } | null;
   paidByParticipant: { id: string; name: string } | null;
@@ -99,8 +101,11 @@ const CATEGORY_COLORS: Record<string, string> = {
   gas: "bg-amber-100 text-amber-800",
   ev_charging: "bg-emerald-100 text-emerald-800",
   tours: "bg-pink-100 text-pink-800",
-  shopping: "bg-rose-100 text-rose-800",
-  other: "bg-stone-100 text-stone-700",
+  shopping:       "bg-rose-100 text-rose-800",
+  transportation: "bg-blue-100 text-blue-800",
+  entertainment:  "bg-violet-100 text-violet-800",
+  snacks:         "bg-amber-100 text-amber-800",
+  other:          "bg-stone-100 text-stone-700",
 };
 
 const TABS: { id: TabId; label: string }[] = [

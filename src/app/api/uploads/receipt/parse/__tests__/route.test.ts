@@ -415,7 +415,7 @@ describe("POST /api/uploads/receipt/parse", () => {
 
   it("returns category=null when AI returns an unknown category value", async () => {
     mockFileExists();
-    mockAIResponse({ amount: 42.5, date: "2026-03-15", description: "Stuff", category: "entertainment" });
+    mockAIResponse({ amount: 42.5, date: "2026-03-15", description: "Stuff", category: "electronics" });
 
     const res = await POST(makeParseRequest({ receiptPath: "receipt.jpg" }));
     const body = await json(res);
@@ -437,7 +437,7 @@ describe("POST /api/uploads/receipt/parse", () => {
 
   it("accepts all valid category values", async () => {
     const validCategories = [
-      "hotel", "flight", "food", "gas", "ev_charging", "tours", "shopping", "other",
+      "hotel", "flight", "food", "gas", "ev_charging", "tours", "shopping", "transportation", "entertainment", "snacks", "other",
     ];
 
     for (const category of validCategories) {

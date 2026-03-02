@@ -28,6 +28,14 @@
 - Use `getAllByText` when multiple elements may share the same text value (e.g., two stat cards both showing "3")
 - For unique value assertions in stat cards, use unique numbers that can't appear in multiple card values simultaneously
 - Date-relative tests (countdown chips): use `new Date(Date.now() + n * 24 * 60 * 60 * 1000)` helper
+- **Snapshot date stability:** Any snapshot that renders dates or relative labels MUST freeze the clock. Non-snapshot tests that assert relative labels do NOT need it (they compute relative to the same `Date.now()`).
+  ```ts
+  describe("MyComponent snapshots", () => {
+    beforeAll(() => { vi.useFakeTimers(); vi.setSystemTime(new Date("2026-01-15T12:00:00Z")); });
+    afterAll(() => { vi.useRealTimers(); });
+  });
+  ```
+  See `docs/TESTING.md › Known Quirks › Snapshot date stability`. Discovered 2026-03-02 when `upcoming-trips.test.tsx.snap` drifted daily (`Mar 12` / `10 d away` → stale by next day).
 
 ### Known happy-dom Quirks
 - `step="0.1"` inputs always report `stepMismatch` — add `novalidate` to the form element in edit-mode tests

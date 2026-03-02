@@ -85,12 +85,14 @@ model Expense {
   creditCard           CreditCard?      @relation(fields: [creditCardId], references: [id], onDelete: SetNull)
   paidByParticipantId  String?
   paidByParticipant    TripParticipant? @relation("PaidByParticipant", fields: [paidByParticipantId], references: [id], onDelete: SetNull)
-  category             String           // hotel, flight, food, gas, ev_charging, tours, shopping, other
+  category             String           // hotel, flight, food, gas, ev_charging, tours, shopping, transportation, entertainment, snacks, other
   description          String
   amount               Float
   date                 DateTime
   pointsEarned         Int              @default(0)
   receiptPath          String?
+  receiptGroupId       String?          // UUID — groups line items from same receipt
+  lineItemIndex        Int?             // preserves line-item order within a group
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
   splits               ExpenseSplit[]

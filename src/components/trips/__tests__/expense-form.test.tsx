@@ -35,6 +35,8 @@ interface MockExpense {
   date: string;
   pointsEarned: number;
   receiptPath: string | null;
+  receiptGroupId: string | null;
+  lineItemIndex: number | null;
 }
 
 const FAMILY_MEMBERS: MockFamilyMember[] = [
@@ -63,6 +65,8 @@ const EXISTING_EXPENSE: MockExpense = {
   date: "2025-08-01T00:00:00.000Z",
   pointsEarned: 500,
   receiptPath: null,
+  receiptGroupId: null,
+  lineItemIndex: null,
 };
 
 // ─── Fetch mock helpers ───────────────────────────────────────────────────────

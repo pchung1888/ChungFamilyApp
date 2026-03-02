@@ -59,6 +59,14 @@
         "--dsn",
         "postgresql://postgres:Password0@localhost:5432/chungfamilyapp"
       ]
+    },
+    "atlassian": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.atlassian.com/v1/sse"
+      ]
     }
   }
 }

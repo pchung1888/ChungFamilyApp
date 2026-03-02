@@ -99,6 +99,25 @@ describe("SpendingChart — category rows", () => {
     expect(screen.getAllByText("EV Charging").length).toBeGreaterThanOrEqual(1);
   });
 
+  it("shows category label 'Transportation' for category 'transportation'", () => {
+    renderChart([{ category: "transportation", total: 100 }], 100);
+    expect(
+      screen.getAllByText("Transportation").length
+    ).toBeGreaterThanOrEqual(1);
+  });
+
+  it("shows category label 'Entertainment' for category 'entertainment'", () => {
+    renderChart([{ category: "entertainment", total: 100 }], 100);
+    expect(
+      screen.getAllByText("Entertainment").length
+    ).toBeGreaterThanOrEqual(1);
+  });
+
+  it("shows category label 'Snacks' for category 'snacks'", () => {
+    renderChart([{ category: "snacks", total: 100 }], 100);
+    expect(screen.getAllByText("Snacks").length).toBeGreaterThanOrEqual(1);
+  });
+
   it("shows the formatted amount '$750.00' for a food category with total 750", () => {
     renderChart([{ category: "food", total: 750 }], 1500);
     expect(screen.getByText("$750.00")).toBeInTheDocument();
