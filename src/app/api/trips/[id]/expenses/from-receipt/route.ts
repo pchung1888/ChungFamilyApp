@@ -21,6 +21,7 @@ interface SplitInput {
 interface FromReceiptBody {
   items: LineItemInput[];
   receiptPath?: string | null;
+  receiptGroupName?: string | null;
   date: string;
   paidByParticipantId?: string | null;
   familyMemberId?: string | null;
@@ -92,7 +93,7 @@ export async function POST(
       return NextResponse.json({ data: null, error: "Invalid request body" }, { status: 400 });
     }
 
-    const { items, receiptPath, date, paidByParticipantId, familyMemberId, creditCardId, splits } =
+    const { items, receiptPath, receiptGroupName, date, paidByParticipantId, familyMemberId, creditCardId, splits } =
       body;
 
     // Validate items
@@ -158,6 +159,7 @@ export async function POST(
             date: parsedDate,
             receiptPath: receiptPath ?? null,
             receiptGroupId,
+            receiptGroupName: receiptGroupName ?? null,
             lineItemIndex: idx,
             pointsEarned: 0,
             paidByParticipantId: paidByParticipantId ?? null,

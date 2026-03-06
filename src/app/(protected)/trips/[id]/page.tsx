@@ -17,6 +17,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -58,10 +67,16 @@ interface Expense {
   pointsEarned: number;
   receiptPath: string | null;
   receiptGroupId: string | null;
+  receiptGroupName: string | null;
   lineItemIndex: number | null;
   familyMember: { id: string; name: string } | null;
   creditCard: { id: string; name: string; lastFour: string; pointsName: string } | null;
   paidByParticipant: { id: string; name: string } | null;
+}
+
+interface TripParticipant {
+  id: string;
+  name: string;
 }
 
 interface Trip {
@@ -171,6 +186,15 @@ export default function TripDetailPage({
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("expenses");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [editGroup, setEditGroup] = useState<{
+    groupId: string;
+    firstExpense: Expense;
+  } | null>(null);
+  const [editGroupDate, setEditGroupDate] = useState("");
+  const [editGroupPaidBy, setEditGroupPaidBy] = useState("__none__");
+  const [editGroupCard, setEditGroupCard] = useState("__none__");
+  const [editGroupSaving, setEditGroupSaving] = useState(false);
+  const [participants, setParticipants] = useState<TripParticipant[]>([]);
 
   const fetchTrip = useCallback(async (): Promise<void> => {
     const res = await fetch(`/api/trips/${id}`);
@@ -180,19 +204,22 @@ export default function TripDetailPage({
 
   useEffect(() => {
     async function loadAll(): Promise<void> {
-      const [tripRes, membersRes, cardsRes] = await Promise.all([
+      const [tripRes, membersRes, cardsRes, participantsRes] = await Promise.all([
         fetch(`/api/trips/${id}`),
         fetch("/api/family"),
         fetch("/api/cards"),
+        fetch(`/api/trips/${id}/participants`),
       ]);
-      const [tripJson, membersJson, cardsJson] = await Promise.all([
+      const [tripJson, membersJson, cardsJson, participantsJson] = await Promise.all([
         tripRes.json() as Promise<{ data: Trip | null; error: string | null }>,
         membersRes.json() as Promise<{ data: FamilyMember[] | null; error: string | null }>,
         cardsRes.json() as Promise<{ data: CreditCard[] | null; error: string | null }>,
+        participantsRes.json() as Promise<{ data: TripParticipant[] | null; error: string | null }>,
       ]);
       if (tripJson.data) setTrip(tripJson.data);
       if (membersJson.data) setFamilyMembers(membersJson.data);
       if (cardsJson.data) setCreditCards(cardsJson.data.filter((c) => c.isActive));
+      if (participantsJson.data) setParticipants(participantsJson.data);
       setLoading(false);
     }
     void loadAll();
@@ -201,6 +228,36 @@ export default function TripDetailPage({
   async function handleDeleteExpense(expenseId: string, description: string): Promise<void> {
     if (!confirm(`Remove expense "${description}"?`)) return;
     await fetch(`/api/trips/${id}/expenses/${expenseId}`, { method: "DELETE" });
+    void fetchTrip();
+  }
+
+  async function handleDeleteGroup(groupId: string, name: string): Promise<void> {
+    if (!confirm(`Remove entire receipt group "${name}"?`)) return;
+    await fetch(`/api/trips/${id}/expenses/receipt-group/${groupId}`, { method: "DELETE" });
+    void fetchTrip();
+  }
+
+  function openEditGroup(groupId: string, firstExpense: Expense): void {
+    setEditGroup({ groupId, firstExpense });
+    setEditGroupDate(new Date(firstExpense.date).toISOString().split("T")[0] ?? "");
+    setEditGroupPaidBy(firstExpense.paidByParticipantId ?? "__none__");
+    setEditGroupCard(firstExpense.creditCardId ?? "__none__");
+  }
+
+  async function handleSaveGroup(): Promise<void> {
+    if (!editGroup) return;
+    setEditGroupSaving(true);
+    await fetch(`/api/trips/${id}/expenses/receipt-group/${editGroup.groupId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        date: editGroupDate,
+        paidByParticipantId: editGroupPaidBy === "__none__" ? null : editGroupPaidBy,
+        creditCardId: editGroupCard === "__none__" ? null : editGroupCard,
+      }),
+    });
+    setEditGroupSaving(false);
+    setEditGroup(null);
     void fetchTrip();
   }
 
@@ -522,6 +579,7 @@ export default function TripDetailPage({
                           ? `···${firstExpense.creditCard.lastFour}`
                           : "—";
 
+                        const groupName = firstExpense.receiptGroupName ?? "Receipt";
                         return [
                           <TableRow
                             key={`group-${group.receiptGroupId}`}
@@ -535,7 +593,10 @@ export default function TripDetailPage({
                               <span className="mr-1.5 text-xs text-muted-foreground">
                                 {isExpanded ? "▼" : "▶"}
                               </span>
-                              📋 {group.expenses.length} items
+                              <span>{groupName}</span>
+                              <span className="ml-1.5 text-xs text-muted-foreground font-normal">
+                                · {group.expenses.length} items
+                              </span>
                             </TableCell>
                             <TableCell>
                               <span className="text-xs text-muted-foreground italic">receipt group</span>
@@ -569,7 +630,32 @@ export default function TripDetailPage({
                                 <span className="text-muted-foreground/30 text-lg">—</span>
                               )}
                             </TableCell>
-                            <TableCell />
+                            <TableCell>
+                              <div className="flex gap-1 justify-end">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEditGroup(group.receiptGroupId!, firstExpense);
+                                  }}
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    void handleDeleteGroup(group.receiptGroupId!, groupName);
+                                  }}
+                                >
+                                  ×
+                                </Button>
+                              </div>
+                            </TableCell>
                           </TableRow>,
                           ...(isExpanded
                             ? group.expenses
@@ -596,14 +682,44 @@ export default function TripDetailPage({
                                     </TableCell>
                                     <TableCell />
                                     <TableCell>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 px-2 text-xs text-destructive hover:text-destructive"
-                                        onClick={() => void handleDeleteExpense(expense.id, expense.description)}
-                                      >
-                                        ×
-                                      </Button>
+                                      <div className="flex gap-1 justify-end">
+                                        <Dialog
+                                          open={editExpense?.id === expense.id}
+                                          onOpenChange={(open) => { if (!open) setEditExpense(null); }}
+                                        >
+                                          <DialogTrigger asChild>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-7 px-2 text-xs"
+                                              onClick={() => setEditExpense(expense)}
+                                            >
+                                              Edit
+                                            </Button>
+                                          </DialogTrigger>
+                                          <DialogContent className="max-w-lg">
+                                            <DialogHeader>
+                                              <DialogTitle>Edit Expense</DialogTitle>
+                                            </DialogHeader>
+                                            <ExpenseForm
+                                              tripId={trip.id}
+                                              expense={editExpense ?? undefined}
+                                              familyMembers={familyMembers}
+                                              creditCards={creditCards}
+                                              onSuccess={() => { setEditExpense(null); void fetchTrip(); }}
+                                              onCancel={() => setEditExpense(null)}
+                                            />
+                                          </DialogContent>
+                                        </Dialog>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                                          onClick={() => void handleDeleteExpense(expense.id, expense.description)}
+                                        >
+                                          ×
+                                        </Button>
+                                      </div>
                                     </TableCell>
                                   </TableRow>
                                 ))
@@ -650,6 +766,62 @@ export default function TripDetailPage({
           {activeTab === "itinerary" && <ItineraryTab tripId={trip.id} />}
         </div>
       </div>
+
+      {/* Group edit dialog */}
+      <Dialog open={!!editGroup} onOpenChange={(open) => { if (!open) setEditGroup(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Edit Receipt Group</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label htmlFor="group-date">Date</Label>
+              <Input
+                id="group-date"
+                type="date"
+                value={editGroupDate}
+                onChange={(e) => setEditGroupDate(e.target.value)}
+              />
+            </div>
+            {participants.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="group-paid-by">Paid By</Label>
+                <Select value={editGroupPaidBy} onValueChange={setEditGroupPaidBy}>
+                  <SelectTrigger id="group-paid-by">
+                    <SelectValue placeholder="Anyone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Anyone</SelectItem>
+                    {participants.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="group-card">Card Used</Label>
+              <Select value={editGroupCard} onValueChange={setEditGroupCard}>
+                <SelectTrigger id="group-card">
+                  <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">None</SelectItem>
+                  {creditCards.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name} ···{c.lastFour}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setEditGroup(null)}>Cancel</Button>
+              <Button onClick={() => void handleSaveGroup()} disabled={editGroupSaving}>
+                {editGroupSaving ? "Saving…" : "Save All Items"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Receipt lightbox */}
       <Dialog open={!!lightboxUrl} onOpenChange={(open) => { if (!open) setLightboxUrl(null); }}>

@@ -293,6 +293,7 @@ export function ExpenseForm({
             category: item.category,
           })),
           receiptPath,
+          receiptGroupName: merchantName ?? null,
           date,
           paidByParticipantId: paidByParticipantId === NONE ? null : paidByParticipantId,
           familyMemberId: familyMemberId === NONE ? null : familyMemberId,
