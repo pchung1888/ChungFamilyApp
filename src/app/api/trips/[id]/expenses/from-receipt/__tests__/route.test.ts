@@ -328,6 +328,51 @@ describe("POST /api/trips/[id]/expenses/from-receipt", () => {
     );
   });
 
+  it("passes receiptGroupName to every expense when provided", async () => {
+    mockTripExists();
+    mockTransactionSuccess(2);
+
+    await POST(
+      makePostRequest({
+        items: [
+          { description: "Milk", amount: 3.99, category: "food" },
+          { description: "Bread", amount: 2.49, category: "food" },
+        ],
+        date: "2026-03-15",
+        receiptGroupName: "Costco",
+      }),
+      makeParams()
+    );
+
+    const calls = vi.mocked(prisma.expense.create).mock.calls;
+    for (const call of calls) {
+      expect(call[0]).toEqual(
+        expect.objectContaining({
+          data: expect.objectContaining({ receiptGroupName: "Costco" }),
+        })
+      );
+    }
+  });
+
+  it("sets receiptGroupName to null when not provided", async () => {
+    mockTripExists();
+    mockTransactionSuccess(1);
+
+    await POST(
+      makePostRequest({
+        items: [{ description: "Milk", amount: 3.99, category: "food" }],
+        date: "2026-03-15",
+      }),
+      makeParams()
+    );
+
+    expect(prisma.expense.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ receiptGroupName: null }),
+      })
+    );
+  });
+
   it("assigns lineItemIndex 0, 1, 2 for three items", async () => {
     mockTripExists();
     mockTransactionSuccess(3);

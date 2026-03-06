@@ -92,6 +92,7 @@ model Expense {
   pointsEarned         Int              @default(0)
   receiptPath          String?
   receiptGroupId       String?          // UUID — groups line items from same receipt
+  receiptGroupName     String?          // merchant name from AI scan (e.g. "Costco")
   lineItemIndex        Int?             // preserves line-item order within a group
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
