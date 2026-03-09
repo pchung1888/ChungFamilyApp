@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ExpenseForm } from "../expense-form";
 import { EXPENSE_CATEGORIES } from "@/lib/constants";
@@ -406,10 +406,9 @@ describe("Receipt UI — with existing receiptPath", () => {
           json: () =>
             Promise.resolve({
               data: {
-                amount: 123.45,
+                merchantName: "Grand Hotel",
                 date: "2025-09-10",
-                description: "Scanned Hotel",
-                category: "hotel",
+                items: [{ description: "Scanned Hotel", amount: 123.45, category: "hotel" }],
               },
               error: null,
             }),
@@ -442,7 +441,7 @@ describe("Receipt UI — with existing receiptPath", () => {
         .mockResolvedValueOnce({
           json: () =>
             Promise.resolve({
-              data: { amount: null, date: null, description: null, category: null },
+              data: { merchantName: null, date: null, items: [] },
               error: null,
             }),
         })
@@ -560,5 +559,272 @@ describe("Split mode UI", () => {
     expect(body.splits).toBeDefined();
     expect(body.splits).toHaveLength(2);
     expect(body.splits[0].amount).toBe(50);
+  });
+});
+
+describe("Line-item mode — switch controls", () => {
+  it("clicking 'Switch to line-item mode' shows LineItemEditor", async () => {
+    mockParticipantsOnly([]);
+    renderForm();
+    await waitForParticipantsLoaded();
+
+    expect(screen.queryByText(/switch to single expense/i)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByText(/switch to line-item mode/i));
+
+    await waitFor(() =>
+      expect(screen.getByText(/switch to single expense/i)).toBeInTheDocument()
+    );
+  });
+
+  it("clicking 'Switch to single expense' returns to single mode", async () => {
+    mockParticipantsOnly([]);
+    renderForm();
+    await waitForParticipantsLoaded();
+
+    await userEvent.click(screen.getByText(/switch to line-item mode/i));
+    await waitFor(() =>
+      expect(screen.getByText(/switch to single expense/i)).toBeInTheDocument()
+    );
+
+    await userEvent.click(screen.getByText(/switch to single expense/i));
+
+    await waitFor(() =>
+      expect(screen.queryByText(/switch to single expense/i)).not.toBeInTheDocument()
+    );
+    expect(screen.getByText(/switch to line-item mode/i)).toBeInTheDocument();
+  });
+});
+
+describe("Multi-item scan → line-item mode", () => {
+  it("switches to line-item mode when scan returns multiple items", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          json: () => Promise.resolve({ data: [], error: null }),
+        })
+        .mockResolvedValueOnce({
+          json: () =>
+            Promise.resolve({
+              data: {
+                merchantName: "Costco",
+                date: "2026-03-01",
+                items: [
+                  { description: "Bulk paper", amount: 15.99, category: "shopping" },
+                  { description: "Rotisserie chicken", amount: 4.99, category: "food" },
+                ],
+              },
+              error: null,
+            }),
+        })
+    );
+
+    renderForm({ expense: EXPENSE_WITH_RECEIPT });
+    await waitForParticipantsLoaded();
+
+    await userEvent.click(screen.getByRole("button", { name: /scan with ai/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/2 line items found from Costco/i)).toBeInTheDocument()
+    );
+    expect(screen.getByText(/switch to single expense/i)).toBeInTheDocument();
+  });
+});
+
+describe("Line-item batch submit", () => {
+  it("submits to from-receipt endpoint and calls onSuccess", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          json: () => Promise.resolve({ data: [], error: null }),
+        })
+        .mockResolvedValueOnce({
+          json: () => Promise.resolve({ data: { count: 1 }, error: null }),
+        })
+    );
+
+    const { onSuccess } = renderForm();
+    await waitForParticipantsLoaded();
+
+    await userEvent.click(screen.getByText(/switch to line-item mode/i));
+    await waitFor(() =>
+      expect(screen.getByLabelText(/item 1 description/i)).toBeInTheDocument()
+    );
+
+    // Use fireEvent.change for reliable controlled-input updates in happy-dom
+    fireEvent.change(screen.getByLabelText(/item 1 description/i), {
+      target: { value: "Bulk paper" },
+    });
+    fireEvent.change(screen.getByLabelText(/item 1 amount/i), {
+      target: { value: "15.99" },
+    });
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /save 1 items/i })).not.toBeDisabled()
+    );
+    document.querySelector("form")!.setAttribute("novalidate", "");
+    await userEvent.click(screen.getByRole("button", { name: /save 1 items/i }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());
+
+    const fetchMock = vi.mocked(fetch);
+    const submitCall = fetchMock.mock.calls.find(([url]) =>
+      (url as string).includes("from-receipt")
+    );
+    expect(submitCall).toBeDefined();
+    const [, opts] = submitCall as [string, RequestInit];
+    expect(opts.method).toBe("POST");
+  });
+
+  it("shows error when from-receipt API returns an error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          json: () => Promise.resolve({ data: [], error: null }),
+        })
+        .mockResolvedValueOnce({
+          json: () => Promise.resolve({ data: null, error: "Batch save failed" }),
+        })
+    );
+
+    renderForm();
+    await waitForParticipantsLoaded();
+
+    await userEvent.click(screen.getByText(/switch to line-item mode/i));
+    await waitFor(() =>
+      expect(screen.getByLabelText(/item 1 description/i)).toBeInTheDocument()
+    );
+
+    fireEvent.change(screen.getByLabelText(/item 1 description/i), {
+      target: { value: "Item A" },
+    });
+    fireEvent.change(screen.getByLabelText(/item 1 amount/i), {
+      target: { value: "10.00" },
+    });
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /save 1 items/i })).not.toBeDisabled()
+    );
+    document.querySelector("form")!.setAttribute("novalidate", "");
+    await userEvent.click(screen.getByRole("button", { name: /save 1 items/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText("Batch save failed")).toBeInTheDocument()
+    );
+  });
+
+  it("includes receiptGroupName in from-receipt payload when merchantName is set", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          json: () => Promise.resolve({ data: [], error: null }),
+        })
+        .mockResolvedValueOnce({
+          json: () =>
+            Promise.resolve({
+              data: {
+                merchantName: "Target",
+                date: "2026-03-01",
+                items: [
+                  { description: "Shampoo", amount: 8.99, category: "other" },
+                  { description: "Soap", amount: 3.49, category: "other" },
+                ],
+              },
+              error: null,
+            }),
+        })
+        .mockResolvedValueOnce({
+          json: () => Promise.resolve({ data: { count: 2 }, error: null }),
+        })
+    );
+
+    const { onSuccess } = renderForm({ expense: EXPENSE_WITH_RECEIPT });
+    await waitForParticipantsLoaded();
+
+    await userEvent.click(screen.getByRole("button", { name: /scan with ai/i }));
+    await waitFor(() =>
+      expect(screen.getByText(/switch to single expense/i)).toBeInTheDocument()
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /save 2 items/i })).not.toBeDisabled()
+    );
+    document.querySelector("form")!.setAttribute("novalidate", "");
+    await userEvent.click(screen.getByRole("button", { name: /save 2 items/i }));
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());
+
+    const fetchMock = vi.mocked(fetch);
+    const submitCall = fetchMock.mock.calls.find(([url]) =>
+      (url as string).includes("from-receipt")
+    );
+    expect(submitCall).toBeDefined();
+    const [, opts] = submitCall as [string, RequestInit];
+    const body = JSON.parse(opts.body as string) as { receiptGroupName: string | null };
+    expect(body.receiptGroupName).toBe("Target");
+  });
+});
+
+describe("Receipt file upload", () => {
+  it("sets receiptPath and shows preview after successful upload", async () => {
+    URL.createObjectURL = vi.fn().mockReturnValue("blob:fake-preview");
+
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          json: () => Promise.resolve({ data: [], error: null }),
+        })
+        .mockResolvedValueOnce({
+          json: () =>
+            Promise.resolve({ data: { path: "receipts/uploaded.jpg" }, error: null }),
+        })
+    );
+
+    renderForm();
+    await waitForParticipantsLoaded();
+
+    const fileInput = document.getElementById("receipt-file") as HTMLInputElement;
+    const file = new File(["content"], "receipt.jpg", { type: "image/jpeg" });
+    await userEvent.upload(fileInput, file);
+
+    await waitFor(() =>
+      expect(screen.getByAltText(/receipt preview/i)).toBeInTheDocument()
+    );
+  });
+
+  it("shows error when upload API fails", async () => {
+    URL.createObjectURL = vi.fn().mockReturnValue("blob:fake-preview");
+
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          json: () => Promise.resolve({ data: [], error: null }),
+        })
+        .mockResolvedValueOnce({
+          json: () => Promise.resolve({ data: null, error: "File too large" }),
+        })
+    );
+
+    renderForm();
+    await waitForParticipantsLoaded();
+
+    const fileInput = document.getElementById("receipt-file") as HTMLInputElement;
+    const file = new File(["content"], "receipt.jpg", { type: "image/jpeg" });
+    await userEvent.upload(fileInput, file);
+
+    await waitFor(() =>
+      expect(screen.getByText("File too large")).toBeInTheDocument()
+    );
   });
 });

@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/select";
 import { EXPENSE_CATEGORIES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { LineItemEditor, LineItem } from "@/components/trips/line-item-editor";
+import type { ReceiptParseResult } from "@/app/api/uploads/receipt/parse/route";
 
 interface FamilyMember {
   id: string;
@@ -62,13 +64,6 @@ interface ExpenseFormProps {
   onCancel: () => void;
 }
 
-interface ReceiptParseResult {
-  amount: number | null;
-  date: string | null;
-  description: string | null;
-  category: string | null;
-}
-
 type SplitMode = "equal_person" | "equal_group" | "none";
 
 function toDateInputValue(value: string | null | undefined): string {
@@ -105,6 +100,10 @@ export function ExpenseForm({
   const [scanStatus, setScanStatus] = useState<"idle" | "success" | "error">("idle");
   const [scanMessage, setScanMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Line-item state — null means single-expense mode; array means line-item mode
+  const [lineItems, setLineItems] = useState<LineItem[] | null>(null);
+  const [merchantName, setMerchantName] = useState<string | null>(null);
 
   // Participants and split state
   const [participants, setParticipants] = useState<TripParticipant[]>([]);
@@ -156,6 +155,8 @@ export function ExpenseForm({
     setLocalPreviewUrl(null);
     setScanStatus("idle");
     setScanMessage(null);
+    setLineItems(null);
+    setMerchantName(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -181,36 +182,62 @@ export function ExpenseForm({
     }
 
     const result = json.data;
-    let filled = 0;
-    if (result.amount !== null) { setAmount(result.amount.toString()); filled++; }
-    if (result.date !== null) { setDate(result.date); filled++; }
-    if (result.description !== null) { setDescription(result.description); filled++; }
-    if (result.category !== null) { setCategory(result.category); filled++; }
 
-    if (filled === 0) {
+    if (result.items.length > 1) {
+      // Multi-line-item receipt — switch to line-item mode
+      setLineItems(
+        result.items.map((item) => ({
+          description: item.description,
+          amount: item.amount,
+          category: item.category,
+        }))
+      );
+      setMerchantName(result.merchantName);
+      if (result.date) setDate(result.date);
+      setScanStatus("success");
+      setScanMessage(
+        `${result.items.length} line items found${result.merchantName ? ` from ${result.merchantName}` : ""}`
+      );
+    } else if (result.items.length === 1) {
+      // Single item — fill single-expense fields
+      const item = result.items[0]!;
+      setAmount(item.amount.toString());
+      setDescription(item.description);
+      setCategory(item.category);
+      if (result.date) setDate(result.date);
+      setLineItems(null);
+      setScanStatus("success");
+      setScanMessage("Fields filled from receipt");
+    } else {
       setScanStatus("error");
       setScanMessage("AI could not read any fields from this receipt");
-    } else {
-      setScanStatus("success");
-      setScanMessage(`${filled} field${filled > 1 ? "s" : ""} filled from receipt`);
     }
+  }
+
+  function switchToSingleMode(): void {
+    setLineItems(null);
+    setMerchantName(null);
+  }
+
+  function switchToLineItemMode(): void {
+    setLineItems([{ description, amount: parseFloat(amount) || "", category }]);
   }
 
   /**
    * Build splits array based on split mode.
    * Returns null if split mode is "none" or there are no participants.
    */
-  function buildSplits(): Array<{ participantId: string; amount: number }> | null {
-    const parsedAmount = parseFloat(amount);
-    if (!parsedAmount || participants.length === 0 || splitMode === "none") return null;
+  function buildSplits(
+    expenseAmount: number
+  ): Array<{ participantId: string; amount: number }> | null {
+    if (!expenseAmount || participants.length === 0 || splitMode === "none") return null;
 
     if (splitMode === "equal_person") {
-      const perPerson = Math.round((parsedAmount / participants.length) * 100) / 100;
+      const perPerson = Math.round((expenseAmount / participants.length) * 100) / 100;
       return participants.map((p) => ({ participantId: p.id, amount: perPerson }));
     }
 
     if (splitMode === "equal_group") {
-      // Group by groupName (participants with no group name each get their own group)
       const groups = new Map<string, TripParticipant[]>();
       for (const p of participants) {
         const key = p.groupName ?? `__solo_${p.id}`;
@@ -218,7 +245,7 @@ export function ExpenseForm({
         groups.set(key, [...existing, p]);
       }
       const groupCount = groups.size;
-      const perGroup = Math.round((parsedAmount / groupCount) * 100) / 100;
+      const perGroup = Math.round((expenseAmount / groupCount) * 100) / 100;
 
       const splits: Array<{ participantId: string; amount: number }> = [];
       for (const [, members] of groups) {
@@ -238,12 +265,63 @@ export function ExpenseForm({
     setLoading(true);
     setError(null);
 
+    if (lineItems !== null && lineItems.length > 0) {
+      // --- Line-item batch submit ---
+      const validItems = lineItems.filter(
+        (item) =>
+          item.description.trim().length > 0 &&
+          typeof item.amount === "number" &&
+          item.amount > 0
+      );
+
+      if (validItems.length === 0) {
+        setError("Add at least one valid line item");
+        setLoading(false);
+        return;
+      }
+
+      const totalAmount = validItems.reduce((s, i) => s + (i.amount as number), 0);
+      const splits = buildSplits(totalAmount);
+
+      const res = await fetch(`/api/trips/${tripId}/expenses/from-receipt`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: validItems.map((item) => ({
+            description: item.description.trim(),
+            amount: item.amount as number,
+            category: item.category,
+          })),
+          receiptPath,
+          receiptGroupName: merchantName ?? null,
+          date,
+          paidByParticipantId: paidByParticipantId === NONE ? null : paidByParticipantId,
+          familyMemberId: familyMemberId === NONE ? null : familyMemberId,
+          creditCardId: creditCardId === NONE ? null : creditCardId,
+          ...(splits !== null && { splits }),
+        }),
+      });
+
+      const json = (await res.json()) as { data: unknown; error: string | null };
+
+      if (json.error) {
+        setError(json.error);
+        setLoading(false);
+        return;
+      }
+
+      onSuccess();
+      return;
+    }
+
+    // --- Single-expense submit ---
     const url = expense
       ? `/api/trips/${tripId}/expenses/${expense.id}`
       : `/api/trips/${tripId}/expenses`;
     const method = expense ? "PATCH" : "POST";
 
-    const splits = buildSplits();
+    const parsedAmount = parseFloat(amount);
+    const splits = buildSplits(parsedAmount);
 
     const res = await fetch(url, {
       method,
@@ -254,7 +332,7 @@ export function ExpenseForm({
         paidByParticipantId: paidByParticipantId === NONE ? null : paidByParticipantId,
         category,
         description,
-        amount: parseFloat(amount),
+        amount: parsedAmount,
         date,
         pointsEarned: parseInt(pointsEarned, 10) || 0,
         receiptPath,
@@ -275,26 +353,28 @@ export function ExpenseForm({
 
   const previewSrc = localPreviewUrl ?? (receiptPath ? `/uploads/receipts/${receiptPath}` : null);
   const parsedAmount = parseFloat(amount) || 0;
+  const isLineItemMode = lineItems !== null;
+
+  const lineItemTotal = isLineItemMode
+    ? lineItems.reduce((s, i) => {
+        const n = typeof i.amount === "number" ? i.amount : 0;
+        return s + n;
+      }, 0)
+    : 0;
+
+  const canSubmitLineItems =
+    isLineItemMode &&
+    lineItems.some(
+      (i) =>
+        i.description.trim().length > 0 && typeof i.amount === "number" && i.amount > 0
+    );
+
+  const canSubmitSingle = !isLineItemMode && !!description && !!amount;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="expense-category">Category</Label>
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger id="expense-category">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {EXPENSE_CATEGORIES.map((c) => (
-                <SelectItem key={c.value} value={c.value}>
-                  {c.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
+        {/* Date — always shown */}
         <div className="space-y-2">
           <Label htmlFor="expense-date">Date</Label>
           <Input
@@ -306,43 +386,7 @@ export function ExpenseForm({
           />
         </div>
 
-        <div className="col-span-2 space-y-2">
-          <Label htmlFor="expense-description">Description</Label>
-          <Input
-            id="expense-description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Hampton Inn, 2 nights"
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="expense-amount">Amount ($)</Label>
-          <Input
-            id="expense-amount"
-            type="number"
-            min="0"
-            step="0.01"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="250.00"
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="points-earned">Points Earned</Label>
-          <Input
-            id="points-earned"
-            type="number"
-            min="0"
-            value={pointsEarned}
-            onChange={(e) => setPointsEarned(e.target.value)}
-          />
-        </div>
-
-        {/* Paid By — show participant dropdown if participants exist, else family member dropdown */}
+        {/* Paid By */}
         {participants.length > 0 ? (
           <div className="space-y-2">
             <Label htmlFor="paid-by-participant">Paid By (Participant)</Label>
@@ -397,6 +441,100 @@ export function ExpenseForm({
           </Select>
         </div>
 
+        {/* Single-expense fields — hidden in line-item mode */}
+        {!isLineItemMode && (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="expense-category">Category</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger id="expense-category">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {EXPENSE_CATEGORIES.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="col-span-2 space-y-2">
+              <Label htmlFor="expense-description">Description</Label>
+              <Input
+                id="expense-description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Hampton Inn, 2 nights"
+                required={!isLineItemMode}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="expense-amount">Amount ($)</Label>
+              <Input
+                id="expense-amount"
+                type="number"
+                min="0"
+                step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="250.00"
+                required={!isLineItemMode}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="points-earned">Points Earned</Label>
+              <Input
+                id="points-earned"
+                type="number"
+                min="0"
+                value={pointsEarned}
+                onChange={(e) => setPointsEarned(e.target.value)}
+              />
+            </div>
+          </>
+        )}
+
+        {/* Line-item editor — shown when in line-item mode */}
+        {isLineItemMode && (
+          <div className="col-span-2 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>
+                Line Items
+                {merchantName && (
+                  <span className="ml-2 text-muted-foreground font-normal">
+                    — {merchantName}
+                  </span>
+                )}
+              </Label>
+              <button
+                type="button"
+                onClick={switchToSingleMode}
+                className="text-xs text-muted-foreground underline hover:text-foreground"
+              >
+                Switch to single expense
+              </button>
+            </div>
+            <LineItemEditor items={lineItems} onChange={setLineItems} />
+          </div>
+        )}
+
+        {/* Switch-to-line-items link when in single mode (only when not editing) */}
+        {!isLineItemMode && !expense && (
+          <div className="col-span-2">
+            <button
+              type="button"
+              onClick={switchToLineItemMode}
+              className="text-xs text-muted-foreground underline hover:text-foreground"
+            >
+              Switch to line-item mode
+            </button>
+          </div>
+        )}
+
         {/* Split section — only shown if participants exist */}
         {participants.length > 0 && (
           <div className="col-span-2 space-y-3 rounded-lg border bg-muted/30 p-3">
@@ -427,70 +565,80 @@ export function ExpenseForm({
               </div>
             </div>
 
-            {splitMode === "equal_person" && parsedAmount > 0 && (
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">
-                  Split equally among {participants.length} participant
-                  {participants.length !== 1 ? "s" : ""}
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {participants.map((p) => (
-                    <div
-                      key={p.id}
-                      className="flex items-center gap-1.5 rounded-full border bg-background px-2.5 py-1 text-xs"
-                    >
-                      <span className="font-medium">{p.name}</span>
-                      <span className="text-muted-foreground">
-                        ${(parsedAmount / participants.length).toFixed(2)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {(() => {
+              const displayAmount = isLineItemMode ? lineItemTotal : parsedAmount;
+              if (displayAmount <= 0) return null;
 
-            {splitMode === "equal_group" && parsedAmount > 0 && (() => {
-              const groups = new Map<string, TripParticipant[]>();
-              for (const p of participants) {
-                const key = p.groupName ?? `__solo_${p.id}`;
-                const existing = groups.get(key) ?? [];
-                groups.set(key, [...existing, p]);
-              }
-              const groupCount = groups.size;
-              const perGroup = parsedAmount / groupCount;
-
-              return (
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">
-                    Split equally among {groupCount} group{groupCount !== 1 ? "s" : ""}
-                  </p>
-                  <div className="space-y-1.5">
-                    {Array.from(groups.entries()).map(([key, members]) => {
-                      const label = members[0]?.groupName ?? members[0]?.name ?? key;
-                      const perMember = perGroup / members.length;
-                      return (
-                        <div key={key} className="rounded border bg-background p-2 text-xs">
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium">{label}</span>
-                            <span className="text-muted-foreground">${perGroup.toFixed(2)} total</span>
-                          </div>
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {members.map((p) => (
-                              <span key={p.id} className="text-muted-foreground">
-                                {p.name}: ${perMember.toFixed(2)}
-                              </span>
-                            ))}
-                          </div>
+              if (splitMode === "equal_person") {
+                return (
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">
+                      Split equally among {participants.length} participant
+                      {participants.length !== 1 ? "s" : ""}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {participants.map((p) => (
+                        <div
+                          key={p.id}
+                          className="flex items-center gap-1.5 rounded-full border bg-background px-2.5 py-1 text-xs"
+                        >
+                          <span className="font-medium">{p.name}</span>
+                          <span className="text-muted-foreground">
+                            ${(displayAmount / participants.length).toFixed(2)}
+                          </span>
                         </div>
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              );
+                );
+              }
+
+              if (splitMode === "equal_group") {
+                const groups = new Map<string, TripParticipant[]>();
+                for (const p of participants) {
+                  const key = p.groupName ?? `__solo_${p.id}`;
+                  const existing = groups.get(key) ?? [];
+                  groups.set(key, [...existing, p]);
+                }
+                const groupCount = groups.size;
+                const perGroup = displayAmount / groupCount;
+
+                return (
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">
+                      Split equally among {groupCount} group{groupCount !== 1 ? "s" : ""}
+                    </p>
+                    <div className="space-y-1.5">
+                      {Array.from(groups.entries()).map(([key, members]) => {
+                        const label = members[0]?.groupName ?? members[0]?.name ?? key;
+                        const perMember = perGroup / members.length;
+                        return (
+                          <div key={key} className="rounded border bg-background p-2 text-xs">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium">{label}</span>
+                              <span className="text-muted-foreground">${perGroup.toFixed(2)} total</span>
+                            </div>
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {members.map((p) => (
+                                <span key={p.id} className="text-muted-foreground">
+                                  {p.name}: ${perMember.toFixed(2)}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              }
+
+              return null;
             })()}
           </div>
         )}
 
+        {/* Receipt section */}
         <div className="col-span-2 space-y-2">
           <Label>Receipt (optional)</Label>
           {previewSrc ? (
@@ -567,8 +715,17 @@ export function ExpenseForm({
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit" disabled={loading || uploadingReceipt || !description || !amount}>
-          {loading ? "Saving…" : expense ? "Save Changes" : "Add Expense"}
+        <Button
+          type="submit"
+          disabled={loading || uploadingReceipt || (!canSubmitSingle && !canSubmitLineItems)}
+        >
+          {loading
+            ? "Saving…"
+            : isLineItemMode
+            ? `Save ${lineItems.filter((i) => i.description && i.amount).length} Items`
+            : expense
+            ? "Save Changes"
+            : "Add Expense"}
         </Button>
       </div>
     </form>

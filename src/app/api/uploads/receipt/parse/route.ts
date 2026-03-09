@@ -15,11 +15,16 @@ const GEMINI_MIME_TYPES: Record<string, string> = {
 
 const VALID_CATEGORIES = new Set(EXPENSE_CATEGORIES.map((c) => c.value));
 
-interface ReceiptParseResult {
-  amount: number | null;
+export interface ReceiptLineItem {
+  description: string;
+  amount: number;
+  category: string;
+}
+
+export interface ReceiptParseResult {
+  merchantName: string | null;
   date: string | null;
-  description: string | null;
-  category: string | null;
+  items: ReceiptLineItem[];
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -71,19 +76,29 @@ export async function POST(request: Request): Promise<NextResponse> {
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({ model: modelName });
 
+  const validCategoryList = EXPENSE_CATEGORIES.map((c) => c.value).join(", ");
+
   let rawText: string;
   try {
     const result = await model.generateContent([
       {
         inlineData: { mimeType, data: base64Data },
       },
-      "Extract these fields from the receipt:\n" +
-        "- amount: total amount charged (number after tax, e.g. 42.50). Null if unclear.\n" +
-        '- date: transaction date as "YYYY-MM-DD". Null if not found.\n' +
-        '- description: merchant name, max 60 chars (e.g. "Hilton Garden Inn"). Null if unclear.\n' +
-        "- category: best match from: hotel, flight, food, gas, ev_charging, tours, shopping, transportation, entertainment, snacks, other.\n\n" +
+      "Extract the line items from this receipt.\n\n" +
+        "Return a JSON object with:\n" +
+        '- "merchantName": store/restaurant name (string, max 60 chars, or null)\n' +
+        '- "date": transaction date as "YYYY-MM-DD" (or null)\n' +
+        '- "items": array of line items, each with:\n' +
+        '  - "description": item name (string, max 60 chars)\n' +
+        '  - "amount": item price as a number (positive)\n' +
+        `  - "category": best match from: ${validCategoryList}\n\n` +
+        "Rules:\n" +
+        "- Include individual purchased items, not subtotals or totals\n" +
+        "- If the receipt is a single-item purchase, return one item\n" +
+        "- Exclude tax lines, tip lines, and payment method lines\n" +
+        "- If no items can be parsed, return items as empty array\n\n" +
         "Respond ONLY with valid JSON, no markdown, no explanation:\n" +
-        '{"amount": <number|null>, "date": "<YYYY-MM-DD|null>", "description": "<string|null>", "category": "<string|null>"}',
+        '{"merchantName": "<string|null>", "date": "<YYYY-MM-DD|null>", "items": [{"description": "<string>", "amount": <number>, "category": "<string>"}]}',
     ]);
     rawText = result.response.text();
   } catch (err) {
@@ -104,13 +119,14 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  // Validate and sanitize each field
-  const rawAmount = parsed.amount;
-  const amount =
-    typeof rawAmount === "number" && isFinite(rawAmount) && rawAmount > 0
-      ? Math.round(rawAmount * 100) / 100
+  // Validate merchantName
+  const rawMerchant = parsed.merchantName;
+  const merchantName =
+    typeof rawMerchant === "string" && rawMerchant.trim().length > 0
+      ? rawMerchant.trim().slice(0, 60)
       : null;
 
+  // Validate date
   const rawDate = parsed.date;
   const isValidDate =
     typeof rawDate === "string" &&
@@ -118,16 +134,39 @@ export async function POST(request: Request): Promise<NextResponse> {
     !isNaN(Date.parse(rawDate));
   const date = isValidDate ? (rawDate as string) : null;
 
-  const rawDesc = parsed.description;
-  const description =
-    typeof rawDesc === "string" && rawDesc.trim().length > 0
-      ? rawDesc.trim().slice(0, 60)
-      : null;
+  // Validate and sanitize items
+  const rawItems = parsed.items;
+  const items: ReceiptLineItem[] = [];
 
-  const rawCat = parsed.category;
-  const category =
-    typeof rawCat === "string" && (VALID_CATEGORIES as Set<string>).has(rawCat) ? rawCat : null;
+  if (Array.isArray(rawItems)) {
+    for (const rawItem of rawItems) {
+      if (typeof rawItem !== "object" || rawItem === null) continue;
+      const item = rawItem as Record<string, unknown>;
 
-  const result: ReceiptParseResult = { amount, date, description, category };
+      const rawDesc = item.description;
+      const description =
+        typeof rawDesc === "string" && rawDesc.trim().length > 0
+          ? rawDesc.trim().slice(0, 60)
+          : null;
+      if (!description) continue;
+
+      const rawAmount = item.amount;
+      const amount =
+        typeof rawAmount === "number" && isFinite(rawAmount) && rawAmount > 0
+          ? Math.round(rawAmount * 100) / 100
+          : null;
+      if (amount === null) continue;
+
+      const rawCat = item.category;
+      const category =
+        typeof rawCat === "string" && (VALID_CATEGORIES as Set<string>).has(rawCat)
+          ? rawCat
+          : "other";
+
+      items.push({ description, amount, category });
+    }
+  }
+
+  const result: ReceiptParseResult = { merchantName, date, items };
   return NextResponse.json({ data: result, error: null });
 }
