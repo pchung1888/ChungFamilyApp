@@ -32,7 +32,9 @@
       "mcp__claude_ai_Atlassian__searchJiraIssuesUsingJql",
       "mcp__claude_ai_Atlassian__getVisibleJiraProjects",
       "mcp__claude_ai_Atlassian__getAccessibleAtlassianResources",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Skill(commit-push-pr)",
+      "Bash(git:*)"
     ]
   }
 }
