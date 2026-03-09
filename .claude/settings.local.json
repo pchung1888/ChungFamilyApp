@@ -28,7 +28,11 @@
       "Bash(ls:*)",
       "Bash(gh pr:*)",
       "Bash(git fetch --all)",
-      "Bash(npx tsc --noEmit)"
+      "Bash(npx tsc --noEmit)",
+      "mcp__claude_ai_Atlassian__searchJiraIssuesUsingJql",
+      "mcp__claude_ai_Atlassian__getVisibleJiraProjects",
+      "mcp__claude_ai_Atlassian__getAccessibleAtlassianResources",
+      "WebFetch(domain:github.com)"
     ]
   }
 }

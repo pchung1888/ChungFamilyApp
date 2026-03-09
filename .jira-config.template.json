@@ -1,0 +1,11 @@
+{
+  "instances": [
+    {
+      "name": "default",
+      "host": "pchung1888.atlassian.net",
+      "email": "pchung1888@gmail.com",
+      "apiToken": "YOUR_JIRA_API_TOKEN_HERE",
+      "projectKey": "CFA"
+    }
+  ]
+}

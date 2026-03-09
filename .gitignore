@@ -69,3 +69,6 @@ coverage/
 # Uploaded receipt images (local dev only)
 public/uploads/receipts/*
 !public/uploads/receipts/.gitkeep
+
+# Jira MCP config with API token (NEVER commit)
+.jira-config.json
