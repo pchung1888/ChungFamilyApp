@@ -34,7 +34,11 @@
       "mcp__claude_ai_Atlassian__getAccessibleAtlassianResources",
       "WebFetch(domain:github.com)",
       "Skill(commit-push-pr)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "mcp__pchung1888-jira__list_issues",
+      "mcp__pchung1888-jira__list_instances",
+      "mcp__pchung1888-jira__search_issues_jql",
+      "mcp__pchung1888-jira__get_issue_types"
     ]
   }
 }

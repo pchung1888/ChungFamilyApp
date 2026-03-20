@@ -2,19 +2,6 @@
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "0"
   },
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "cd /d/playground/ChungFamilyApp && npm run lint 2>&1 | head -50"
-          }
-        ]
-      }
-    ]
-  },
   "permissions": {
     "allow": [
       "Bash(npx vitest run:*)",
@@ -32,10 +19,25 @@
       "Read(//c/Users/pingf/AppData/Roaming/nvm/v22.9.0/node_modules/@modelcontextprotocol/server-postgres/**)",
       "Bash(node -e:*)",
       "Bash(cmd //c \"where node\")",
-      "Read(//c/Users/pingf/AppData/Roaming/nvm//**)"
+      "Read(//c/Users/pingf/AppData/Roaming/nvm//**)",
+      "Read(//c/Users/pingf/.claude/**)",
+      "Read(//c/Users/pingf/.mcp-auth/**)"
     ],
     "additionalDirectories": [
       "d:\\playground\\ChungFamilyApp\\src\\app\\api\\uploads\\receipt\\parse"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /d/playground/ChungFamilyApp && npm run lint 2>&1 | head -50"
+          }
+        ]
+      }
     ]
   },
   "mcpServers": {
